@@ -1,4 +1,23 @@
 import './style.css';
+import {
+  ENEMY_SPEED_SCALE,
+  ENEMY_SPAWN_INTERVAL,
+  ENEMY_MIN_SPAWN_INTERVAL,
+  ENEMY_BASE_COUNT,
+  ENEMY_MAX_CAP,
+  ENEMY_ACCELERATION_PER_SEC,
+  PHASE2_TRIGGER_MODE,
+  PHASE2_KILLS_THRESHOLD,
+  PHASE2_TIME_THRESHOLD_SEC,
+  PHASE2_HARDCORE_KILLS,
+  PHASE2_BOSS_HP_SCALE,
+  PHASE2_BOSS_SPEED_SCALE,
+  PHASE2_BOSS_ENRAGE_HP_RATIO,
+  PHASE2_ALERT_DURATION_SEC,
+  MEDKIT_DROP_CHANCE,
+  MEDKIT_PITY_BONUS,
+  MEDKIT_HEAL_VALUE,
+} from './game/constants';
 
 // --- ИНТЕРФЕЙСЫ И ТИПЫ ДЛЯ TYPESCRIPT STRICT ---
 interface HeroClass {
@@ -840,18 +859,9 @@ let lightningArcs: LightningArc[] = [];
 let novaWaves: NovaWave[] = [];
 let companionDrones: CompanionDrone[] = [];
 
-// Игровые параметры сложности и баланса
-// Активация Фазы 2 (босс) по количеству убийств: 45 фрагов уничтожаются в среднем за ~50 секунд боя
-const BOSS_KILLS_THRESHOLD_NORMAL = 45; // Убийств врагов до появления босса (~50 сек)
-const BOSS_KILLS_THRESHOLD_HARDCORE = 35; // В хардкоре требуется 35 убийств
-let nextBossKills = BOSS_KILLS_THRESHOLD_NORMAL;
-const MAX_ENEMIES_CAP = 75; // Максимальная плотность толпы врагов (было 50)
-const BASE_ENEMIES_COUNT = 14; // Начальное количество врагов (было 8)
-const ENEMY_SPEED_SCALING_PER_SEC = 0.0014; // Плавное ускорение врагов (+8.4% за минуту)
-const MEDKIT_BASE_DROP_CHANCE = 0.02; // Базовый шанс выпадения аптечки (2%)
-const MEDKIT_PITY_INCREMENT = 0.002; // Накопительный шанс за каждого убитого врага (+0.2%)
-const MEDKIT_HEAL_AMOUNT = 8; // Объем лечения от одной аптечки
-let currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
+// Игровые параметры сложности и баланса вынесены в src/game/constants.ts
+let nextBossThreshold: number = PHASE2_KILLS_THRESHOLD;
+let currentMedkitDropChance: number = MEDKIT_DROP_CHANCE;
 
 const keys: Record<string, boolean> = {};
 const joy = { active: false, startX: 0, startY: 0, curX: 0, curY: 0, dx: 0, dy: 0 };
@@ -982,10 +992,12 @@ function startGame(): void {
   companionDrones = [];
   elapsed = 0;
   spawnTimer = 1.0;
-  nextBossKills = isHardcore ? BOSS_KILLS_THRESHOLD_HARDCORE : BOSS_KILLS_THRESHOLD_NORMAL;
+  nextBossThreshold = isHardcore
+    ? PHASE2_HARDCORE_KILLS
+    : (PHASE2_TRIGGER_MODE === 'kills' ? PHASE2_KILLS_THRESHOLD : PHASE2_TIME_THRESHOLD_SEC);
   bossSpawnCount = 0;
   bossWarningTimer = 0;
-  currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
+  currentMedkitDropChance = MEDKIT_DROP_CHANCE;
   state = 'PLAYING';
   lastTime = performance.now();
 
@@ -1133,7 +1145,7 @@ function spawnEnemy(
   if (type === 'boss') {
     const kind = bossKind || 'dreadnought';
     if (kind === 'archon') {
-      const hp = Math.round((1300 + elapsed * 14) * hcHpMult);
+      const hp = Math.round((1300 + elapsed * 14) * hcHpMult * PHASE2_BOSS_HP_SCALE);
       enemies.push({
         type: 'boss',
         bossType: 'archon',
@@ -1143,7 +1155,7 @@ function spawnEnemy(
         r: 36,
         hp,
         maxHp: hp,
-        speed: 1.25 * hcSpeedMult,
+        speed: 1.25 * hcSpeedMult * PHASE2_BOSS_SPEED_SCALE,
         dmg: 28,
         color: '#b829ff',
         sides: 8,
@@ -1161,7 +1173,7 @@ function spawnEnemy(
         spinAngle: 0,
       });
     } else if (kind === 'singularity') {
-      const hp = Math.round((1800 + elapsed * 18) * hcHpMult);
+      const hp = Math.round((1800 + elapsed * 18) * hcHpMult * PHASE2_BOSS_HP_SCALE);
       enemies.push({
         type: 'boss',
         bossType: 'singularity',
@@ -1171,7 +1183,7 @@ function spawnEnemy(
         r: 38,
         hp,
         maxHp: hp,
-        speed: 1.2 * hcSpeedMult,
+        speed: 1.2 * hcSpeedMult * PHASE2_BOSS_SPEED_SCALE,
         dmg: 30,
         color: '#ff6600',
         sides: 10,
@@ -1184,7 +1196,7 @@ function spawnEnemy(
         dashTime: 0,
       });
     } else {
-      const hp = Math.round((850 + elapsed * 10) * hcHpMult);
+      const hp = Math.round((850 + elapsed * 10) * hcHpMult * PHASE2_BOSS_HP_SCALE);
       enemies.push({
         type: 'boss',
         bossType: 'dreadnought',
@@ -1194,7 +1206,7 @@ function spawnEnemy(
         r: 34,
         hp,
         maxHp: hp,
-        speed: 1.35 * hcSpeedMult,
+        speed: 1.35 * hcSpeedMult * PHASE2_BOSS_SPEED_SCALE,
         dmg: 26,
         color: '#ff0055',
         sides: 6,
@@ -1360,7 +1372,12 @@ function findNearestEnemy(fromX: number, fromY: number, excludeSet: Set<Enemy> |
 function updateHud(): void {
   document.getElementById('hpEl')!.textContent = `HP: ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHp}`;
   document.getElementById('lvlEl')!.textContent = `УР: ${player.lvl}`;
-  document.getElementById('killsEl')!.innerHTML = `FRAGS: ${player.kills} <span style="font-size:11px;color:#94a3b8;font-weight:600;">(БОСС: ${Math.min(player.kills, nextBossKills)}/${nextBossKills})</span>`;
+
+  const triggerLabel = PHASE2_TRIGGER_MODE === 'kills'
+    ? `(БОСС: ${Math.min(player.kills, nextBossThreshold)}/${nextBossThreshold})`
+    : `(БОСС: ${Math.min(Math.floor(elapsed), nextBossThreshold)}/${nextBossThreshold}с)`;
+
+  document.getElementById('killsEl')!.innerHTML = `FRAGS: ${player.kills} <span style="font-size:11px;color:#94a3b8;font-weight:600;">${triggerLabel}</span>`;
   document.getElementById('goldEl')!.innerHTML = `<span class="coin">C</span> +${player.runGold} CR`;
 
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -1760,9 +1777,17 @@ function update(dt: number): void {
   }
 
   // 4. СПАВН И ПОВЕДЕНИЕ ВРАГОВ
-  // Активация 2 фазы (босса) по числу побежденных врагов (набирается примерно за 50 сек боя)
-  if (player.kills >= nextBossKills) {
-    nextBossKills += isHardcore ? BOSS_KILLS_THRESHOLD_HARDCORE : BOSS_KILLS_THRESHOLD_NORMAL;
+  // Активация 2 фазы (босса) по условию из src/game/constants.ts (по фрагам или по таймеру)
+  const isPhase2Triggered =
+    PHASE2_TRIGGER_MODE === 'kills'
+      ? player.kills >= nextBossThreshold
+      : elapsed >= nextBossThreshold;
+
+  if (isPhase2Triggered) {
+    const step = isHardcore
+      ? PHASE2_HARDCORE_KILLS
+      : (PHASE2_TRIGGER_MODE === 'kills' ? PHASE2_KILLS_THRESHOLD : PHASE2_TIME_THRESHOLD_SEC);
+    nextBossThreshold += step;
     bossSpawnCount++;
     const bossKinds: ('dreadnought' | 'archon' | 'singularity')[] = ['dreadnought', 'archon', 'singularity'];
     const curKind = bossKinds[(bossSpawnCount - 1) % bossKinds.length];
@@ -1779,14 +1804,19 @@ function update(dt: number): void {
       singularity: '#ff6600',
     };
 
-    bossWarningTimer = 3.5;
+    bossWarningTimer = PHASE2_ALERT_DURATION_SEC;
     bossWarningText = `⚠ ВНИМАНИЕ: ${bossNames[curKind]}! ⚠`;
-    bossWarningSub = 'ФАЗА 2: БОСС ВЫЗВАН ПО КОЛИЧЕСТВУ УБИЙСТВ';
+    bossWarningSub = PHASE2_TRIGGER_MODE === 'kills'
+      ? 'ФАЗА 2: БОСС АКТИВИРОВАН ПО КОЛИЧЕСТВУ УБИЙСТВ'
+      : 'ФАЗА 2: БОСС АКТИВИРОВАН ПО ТАЙМЕРУ ВЫЖИВАНИЯ';
     bossWarningColor = bossColors[curKind];
     playSound('boss_spawn');
   }
 
-  const maxEnemies = Math.min(MAX_ENEMIES_CAP, BASE_ENEMIES_COUNT + Math.floor(elapsed * 0.65));
+  const maxEnemies = Math.min(
+    ENEMY_MAX_CAP,
+    ENEMY_BASE_COUNT + Math.floor(elapsed * 0.65)
+  );
   spawnTimer -= dt / 60;
   if (spawnTimer <= 0) {
     const batch = elapsed > 20 ? (Math.random() < 0.5 ? 2 : 1) : 1;
@@ -1806,7 +1836,10 @@ function update(dt: number): void {
         }
       }
     }
-    spawnTimer = Math.max(0.18, 0.95 - elapsed * 0.007);
+    spawnTimer = Math.max(
+      ENEMY_MIN_SPAWN_INTERVAL,
+      ENEMY_SPAWN_INTERVAL - elapsed * 0.007
+    );
   }
 
   for (let i = enemies.length - 1; i >= 0; i--) {
@@ -1874,10 +1907,10 @@ function update(dt: number): void {
 
       // Накапливающийся шанс выпадения аптечки (pity-timer)
       if (Math.random() < currentMedkitDropChance) {
-        medkits.push({ x: e.x, y: e.y, heal: MEDKIT_HEAL_AMOUNT });
-        currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
+        medkits.push({ x: e.x, y: e.y, heal: MEDKIT_HEAL_VALUE });
+        currentMedkitDropChance = MEDKIT_DROP_CHANCE;
       } else {
-        currentMedkitDropChance += MEDKIT_PITY_INCREMENT;
+        currentMedkitDropChance += MEDKIT_PITY_BONUS;
       }
 
       enemies.splice(i, 1);
@@ -1885,7 +1918,10 @@ function update(dt: number): void {
     }
 
     // Плавное постепенное ускорение врагов со временем забега
-    const effectiveSpeed = e.speed * (1 + elapsed * ENEMY_SPEED_SCALING_PER_SEC);
+    const speedMult = e.type === 'boss'
+      ? PHASE2_BOSS_SPEED_SCALE
+      : ENEMY_SPEED_SCALE;
+    const effectiveSpeed = e.speed * speedMult * (1 + elapsed * ENEMY_ACCELERATION_PER_SEC);
     const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
     const aimAngle = Math.atan2(player.y - e.y, player.x - e.x);
 
@@ -1897,7 +1933,7 @@ function update(dt: number): void {
       e.pushX = 0;
       e.pushY = 0;
 
-      const isEnraged = e.hp < e.maxHp * 0.45;
+      const isEnraged = e.hp < e.maxHp * PHASE2_BOSS_ENRAGE_HP_RATIO;
       const baseSpeed = effectiveSpeed * (isEnraged ? 1.25 : 1.0);
       const bKind = e.bossType || 'dreadnought';
 
@@ -2629,7 +2665,7 @@ function draw(): void {
       activeBoss.y - activeBoss.r <= player.y + H / 2;
 
     if (isBossOnScreen) {
-      const isEnraged = activeBoss.hp < activeBoss.maxHp * 0.45;
+      const isEnraged = activeBoss.hp < activeBoss.maxHp * PHASE2_BOSS_ENRAGE_HP_RATIO;
       const bKind = activeBoss.bossType || 'dreadnought';
       const barW = Math.min(460, W * 0.6);
       const barH = 14;
