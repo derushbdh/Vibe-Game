@@ -1884,7 +1884,7 @@ function update(dt: number): void {
                 dmg: Math.round(11 + elapsed * 0.04),
                 r: 6,
                 color: isEnraged ? '#ff0033' : '#ff0055',
-                life: 125,
+                life: 175,
               });
             }
             playSound('enemy_shoot');
@@ -1938,7 +1938,7 @@ function update(dt: number): void {
                 dmg: Math.round(9 + elapsed * 0.035),
                 r: 5.5,
                 color: '#b829ff', // Фиолетовые снаряды под цвет Теслы!
-                life: 135,
+                life: 190,
               });
             }
             playSound('enemy_shoot');
@@ -1984,7 +1984,7 @@ function update(dt: number): void {
               dmg: Math.round(15 + elapsed * 0.04),
               r: 8.5,
               color: '#ff6600',
-              life: 80, // пролетает и взрывается на дистанции или при попадании!
+              life: 115, // пролетает дальше и взрывается на дистанции или при попадании!
               isExplosive: true,
               blastRadius: 48,
             });
@@ -2047,7 +2047,7 @@ function update(dt: number): void {
             dmg: Math.round(8 + elapsed * 0.03),
             r: 5,
             color: '#ff3366',
-            life: 110,
+            life: 165,
           });
           playSound('enemy_shoot');
           e.shootCooldown = 110 + Math.random() * 40;
