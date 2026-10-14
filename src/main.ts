@@ -1113,7 +1113,7 @@ function spawnEnemy(
         bossTimer: 75,
         specialTimer: 140,
         dashTime: 0,
-        fieldRadius: 135,
+        fieldRadius: 195,
         fieldZapTimer: 25,
         burstCount: 0,
         burstTimer: 0,
@@ -1889,7 +1889,7 @@ function update(dt: number): void {
         // Электрическое поле (бьет током СТРОГО внутри) + Вращающийся залп спиральными шлейфами
         moveSpeed = baseSpeed * 0.92;
 
-        const fieldR = e.fieldRadius || (isEnraged ? 155 : 135);
+        const fieldR = e.fieldRadius || (isEnraged ? 235 : 195);
         e.fieldRadius = fieldR;
 
         // 1. Урон и разряды в электрическом поле (СТРОГО когда игрок внутри поля)
@@ -2252,7 +2252,7 @@ function draw(): void {
       const bKind = e.bossType || 'dreadnought';
 
       if (bKind === 'archon') {
-        const fieldR = e.fieldRadius || (isEnraged ? 155 : 135);
+        const fieldR = e.fieldRadius || (isEnraged ? 235 : 195);
 
         // Электрическое поле Теслы: эффекты молний строго внутри поля, фон полупрозрачный
         ctx.save();
@@ -2267,7 +2267,7 @@ function draw(): void {
         ctx.clip();
 
         // 2. Внутренние эффекты молний и искр строго внутри поля
-        const boltCount = isEnraged ? 5 : 3;
+        const boltCount = isEnraged ? 7 : 5;
         ctx.shadowBlur = 10;
         ctx.shadowColor = '#00ffff';
         ctx.strokeStyle = '#00ffff';

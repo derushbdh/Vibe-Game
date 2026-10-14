@@ -591,9 +591,16 @@ h1 {
   border-bottom: 1px solid #283663;
 }
 
+.boredom-title {
+  white-space: nowrap;
+  user-select: none;
+}
+
 .boredom-btns {
   display: flex;
   gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .boredom-btns button {
@@ -605,6 +612,8 @@ h1 {
   font-size: 11px;
   padding: 2px 6px;
   transition: 0.15s;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .boredom-btns button:hover {
@@ -615,7 +624,15 @@ h1 {
 #boredomSpeedBtn {
   font-weight: 800;
   color: #ffd700;
-  min-width: 26px;
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
+  padding: 2px 0;
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
 }
 
 #boredomMuteBtn.unmuted {
