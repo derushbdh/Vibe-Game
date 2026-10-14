@@ -269,6 +269,8 @@ interface Enemy {
   pushY: number;
   bladeCd?: number;
   shootCooldown?: number;
+  bossTimer?: number;
+  dashTime?: number;
 }
 
 interface Bullet {
@@ -961,22 +963,24 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
   const y = player.y + Math.sin(angle) * dist;
 
   if (type === 'boss') {
-    const hp = 180 + elapsed * 3.5;
+    const hp = 360 + elapsed * 6;
     enemies.push({
       type: 'boss',
       x,
       y,
-      r: 32,
+      r: 34,
       hp,
       maxHp: hp,
-      speed: 1.25,
-      dmg: 22,
+      speed: 1.3,
+      dmg: 26,
       color: '#ff0055',
       sides: 6,
-      xp: 12,
-      gold: 20,
+      xp: 15,
+      gold: 25,
       pushX: 0,
       pushY: 0,
+      bossTimer: 70,
+      dashTime: 0,
     });
   } else if (type === 'tank') {
     const hp = 32 + elapsed * 0.9;
@@ -1481,7 +1485,55 @@ function update(dt: number): void {
     let moveAngle = aimAngle;
     let moveSpeed = effectiveSpeed;
 
-    if (e.type === 'shooter') {
+    if (e.type === 'boss') {
+      // Босс неуязвим к отталкиванию
+      e.pushX = 0;
+      e.pushY = 0;
+
+      const isEnraged = e.hp < e.maxHp * 0.45;
+      const baseSpeed = effectiveSpeed * (isEnraged ? 1.25 : 1.0);
+
+      // Активный таранный рывок (Dash)
+      if (e.dashTime && e.dashTime > 0) {
+        e.dashTime -= dt;
+        moveSpeed = baseSpeed * 2.6;
+        if (Math.random() < 0.6) {
+          addParticles(e.x, e.y, isEnraged ? '#ff0033' : '#ff0055', 2, 2.5);
+        }
+      } else {
+        moveSpeed = baseSpeed;
+      }
+
+      // Атаки босса
+      e.bossTimer = (e.bossTimer || 70) - dt;
+      if (e.bossTimer <= 0) {
+        const doDash = Math.random() < 0.35 && distToPlayer > 180;
+        if (doDash) {
+          e.dashTime = 38; // рывок вперед
+          addFloatText(e.x, e.y - e.r - 15, 'РЫВОК!', isEnraged ? '#ff0033' : '#ff0055', 18);
+          e.bossTimer = isEnraged ? 85 : 130;
+        } else {
+          // Веерный залп снарядами (5 в 1-й фазе, 7 в фазе ярости)
+          const bulletCount = isEnraged ? 7 : 5;
+          const spread = isEnraged ? 0.95 : 0.75;
+          for (let b = 0; b < bulletCount; b++) {
+            const bAngle = aimAngle - spread / 2 + (b / (bulletCount - 1)) * spread;
+            enemyBullets.push({
+              x: e.x + Math.cos(bAngle) * (e.r + 6),
+              y: e.y + Math.sin(bAngle) * (e.r + 6),
+              vx: Math.cos(bAngle) * 5.4,
+              vy: Math.sin(bAngle) * 5.4,
+              dmg: Math.round(11 + elapsed * 0.04),
+              r: 6,
+              color: isEnraged ? '#ff0033' : '#ff0055',
+              life: 125,
+            });
+          }
+          playSound('enemy_shoot');
+          e.bossTimer = isEnraged ? 90 : 145;
+        }
+      }
+    } else if (e.type === 'shooter') {
       // Стрелок держит боевую дистанцию (200-330px)
       if (distToPlayer < 200) {
         moveAngle = aimAngle + Math.PI; // отступает
@@ -1702,6 +1754,21 @@ function draw(): void {
       ctx.fill();
     }
 
+    // Силовое кольцо и ядро босса
+    if (e.type === 'boss') {
+      const isEnraged = e.hp < e.maxHp * 0.45;
+      ctx.strokeStyle = isEnraged ? '#ff0033' : 'rgba(255, 0, 85, 0.65)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r + 9, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = isEnraged ? '#ffea00' : '#ffffff';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     if (e.hp < e.maxHp || e.type === 'boss') {
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(e.x - e.r, e.y - e.r - 10, e.r * 2, 4);
@@ -1792,6 +1859,45 @@ function draw(): void {
   }
   ctx.globalAlpha = 1;
   ctx.restore();
+
+  // Верхняя полоска здоровья босса (если активен на арене)
+  const activeBoss = enemies.find((e) => e.type === 'boss');
+  if (activeBoss) {
+    const isEnraged = activeBoss.hp < activeBoss.maxHp * 0.45;
+    const barW = Math.min(460, W * 0.6);
+    const barH = 14;
+    const barX = (W - barW) / 2;
+    const barY = 56;
+
+    ctx.fillStyle = 'rgba(8, 10, 18, 0.9)';
+    ctx.fillRect(barX - 8, barY - 24, barW + 16, barH + 32);
+    ctx.strokeStyle = isEnraged ? '#ff0033' : '#ff0055';
+    ctx.lineWidth = 1.8;
+    ctx.strokeRect(barX - 8, barY - 24, barW + 16, barH + 32);
+
+    ctx.font = "800 12px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = isEnraged ? '#ff3366' : '#ff0055';
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      isEnraged ? '⚠ БОСС: КИБЕР-ДРЕДНОУТ [РЕЖИМ ЯРОСТИ!]' : 'БОСС: КИБЕР-ДРЕДНОУТ [ФАЗА 1]',
+      barX,
+      barY - 8
+    );
+
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`${Math.max(0, Math.ceil(activeBoss.hp))} / ${Math.round(activeBoss.maxHp)}`, barX + barW, barY - 8);
+
+    ctx.fillStyle = 'rgba(255, 0, 85, 0.2)';
+    ctx.fillRect(barX, barY, barW, barH);
+
+    const fillW = barW * Math.max(0, activeBoss.hp / activeBoss.maxHp);
+    ctx.fillStyle = isEnraged ? '#ff0033' : '#ff0055';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = isEnraged ? '#ff0033' : '#ff0055';
+    ctx.fillRect(barX, barY, fillW, barH);
+    ctx.shadowBlur = 0;
+  }
 
   // Виртуальный экранный джойстик при таче / зажатой мыши
   if (joy.active) {
