@@ -525,7 +525,7 @@ h1 {
   position: fixed;
   right: 16px;
   top: 76px;
-  z-index: 40;
+  z-index: 15;
   background: linear-gradient(135deg, #18203d, #0d1226);
   border: 1.5px solid #00ffcc;
   color: #00ffcc;
@@ -565,7 +565,7 @@ h1 {
   right: 16px;
   bottom: 16px;
   width: 250px;
-  z-index: 45;
+  z-index: 16;
   border-radius: 14px;
   overflow: hidden;
   background: #0d1224;
