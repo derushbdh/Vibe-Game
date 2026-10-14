@@ -40,7 +40,8 @@ type SoundType =
   | 'enemy_shoot'
   | 'player_hit'
   | 'heal'
-  | 'explosion';
+  | 'explosion'
+  | 'boss_spawn';
 
 let audioCtx: AudioContext | null = null;
 function playSound(type: SoundType): void {
@@ -187,6 +188,19 @@ function playSound(type: SoundType): void {
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.23);
+    } else if (type === 'boss_spawn') {
+      // Тревожная кибер-сирена появления босса
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.linearRampToValueAtTime(320, now + 0.32);
+      gain.gain.setValueAtTime(0.24, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.55);
     }
   } catch {
     // Безопасный fallback, если аудио заблокировано политикой браузера
@@ -810,6 +824,10 @@ let elapsed = 0;
 let spawnTimer = 0;
 let nextBossTime = 45;
 let bossSpawnCount = 0;
+let bossWarningTimer = 0;
+let bossWarningText = '';
+let bossWarningSub = '';
+let bossWarningColor = '#ff0055';
 
 let player!: Player;
 let bullets: Bullet[] = [];
@@ -965,6 +983,7 @@ function startGame(): void {
   spawnTimer = 1.0;
   nextBossTime = isHardcore ? BOSS_INTERVAL_HARDCORE : BOSS_INTERVAL_NORMAL;
   bossSpawnCount = 0;
+  bossWarningTimer = 0;
   currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
   state = 'PLAYING';
   lastTime = performance.now();
@@ -1359,6 +1378,10 @@ function update(dt: number): void {
   elapsed += dt / 60;
   updateHud();
   if (player.invuln > 0) player.invuln -= dt;
+  if (bossWarningTimer > 0) {
+    bossWarningTimer -= dt / 60;
+    if (bossWarningTimer < 0) bossWarningTimer = 0;
+  }
 
   // 1. ДВИЖЕНИЕ ИГРОКА (Клавиатура или виртуальный джойстик)
   let mx = (keys['KeyD'] || keys['ArrowRight'] ? 1 : 0) - (keys['KeyA'] || keys['ArrowLeft'] ? 1 : 0);
@@ -1753,7 +1776,12 @@ function update(dt: number): void {
       archon: '#b829ff',
       singularity: '#ff6600',
     };
-    addFloatText(player.x, player.y - 50, `ВНИМАНИЕ: ${bossNames[curKind]}!`, bossColors[curKind], 20);
+
+    bossWarningTimer = 3.5;
+    bossWarningText = `⚠ ВНИМАНИЕ: ${bossNames[curKind]}! ⚠`;
+    bossWarningSub = 'В СЕКТОРЕ ОБНАРУЖЕН БОСС АЛЬФА-УРОВНЯ';
+    bossWarningColor = bossColors[curKind];
+    playSound('boss_spawn');
   }
 
   const maxEnemies = Math.min(MAX_ENEMIES_CAP, BASE_ENEMIES_COUNT + Math.floor(elapsed * 0.65));
@@ -2589,51 +2617,92 @@ function draw(): void {
   ctx.globalAlpha = 1;
   ctx.restore();
 
-  // Верхняя полоска здоровья босса (если активен на арене)
+  // Верхняя полоска здоровья босса (ТОЛЬКО если босс виден на экране)
   const activeBoss = enemies.find((e) => e.type === 'boss');
   if (activeBoss) {
-    const isEnraged = activeBoss.hp < activeBoss.maxHp * 0.45;
-    const bKind = activeBoss.bossType || 'dreadnought';
-    const barW = Math.min(460, W * 0.6);
-    const barH = 14;
-    const barX = (W - barW) / 2;
-    const barY = 56;
+    const isBossOnScreen =
+      activeBoss.x + activeBoss.r >= player.x - W / 2 &&
+      activeBoss.x - activeBoss.r <= player.x + W / 2 &&
+      activeBoss.y + activeBoss.r >= player.y - H / 2 &&
+      activeBoss.y - activeBoss.r <= player.y + H / 2;
 
-    const themeColor = bKind === 'archon' ? '#b829ff' : bKind === 'singularity' ? '#ff6600' : '#ff0055';
-    const enragedColor = bKind === 'archon' ? '#ff00ff' : bKind === 'singularity' ? '#ffea00' : '#ff0033';
-    const activeColor = isEnraged ? enragedColor : themeColor;
+    if (isBossOnScreen) {
+      const isEnraged = activeBoss.hp < activeBoss.maxHp * 0.45;
+      const bKind = activeBoss.bossType || 'dreadnought';
+      const barW = Math.min(460, W * 0.6);
+      const barH = 14;
+      const barX = (W - barW) / 2;
+      const barY = 56;
 
-    ctx.fillStyle = 'rgba(8, 10, 18, 0.9)';
-    ctx.fillRect(barX - 8, barY - 24, barW + 16, barH + 32);
-    ctx.strokeStyle = activeColor;
-    ctx.lineWidth = 1.8;
-    ctx.strokeRect(barX - 8, barY - 24, barW + 16, barH + 32);
+      const themeColor = bKind === 'archon' ? '#b829ff' : bKind === 'singularity' ? '#ff6600' : '#ff0055';
+      const enragedColor = bKind === 'archon' ? '#ff00ff' : bKind === 'singularity' ? '#ffea00' : '#ff0033';
+      const activeColor = isEnraged ? enragedColor : themeColor;
 
-    ctx.font = "800 12px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = activeColor;
-    ctx.textAlign = 'left';
-    const bName = activeBoss.bossName || 'БОСС';
-    ctx.fillText(
-      isEnraged ? `⚠ ${bName} [РЕЖИМ ЯРОСТИ!]` : `${bName} [ФАЗА 1]`,
-      barX,
-      barY - 8
-    );
+      ctx.fillStyle = 'rgba(8, 10, 18, 0.9)';
+      ctx.fillRect(barX - 8, barY - 24, barW + 16, barH + 32);
+      ctx.strokeStyle = activeColor;
+      ctx.lineWidth = 1.8;
+      ctx.strokeRect(barX - 8, barY - 24, barW + 16, barH + 32);
 
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#ffffff';
-    const bossMaxHp = Math.round(activeBoss.maxHp);
-    const bossCurHp = Math.min(bossMaxHp, Math.max(0, Math.ceil(activeBoss.hp)));
-    ctx.fillText(`${bossCurHp} / ${bossMaxHp}`, barX + barW, barY - 8);
+      ctx.font = "800 12px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillStyle = activeColor;
+      ctx.textAlign = 'left';
+      const bName = activeBoss.bossName || 'БОСС';
+      ctx.fillText(
+        isEnraged ? `⚠ ${bName} [РЕЖИМ ЯРОСТИ!]` : `${bName} [ФАЗА 1]`,
+        barX,
+        barY - 8
+      );
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.fillRect(barX, barY, barW, barH);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#ffffff';
+      const bossMaxHp = Math.round(activeBoss.maxHp);
+      const bossCurHp = Math.min(bossMaxHp, Math.max(0, Math.ceil(activeBoss.hp)));
+      ctx.fillText(`${bossCurHp} / ${bossMaxHp}`, barX + barW, barY - 8);
 
-    const fillW = barW * Math.max(0, Math.min(1, activeBoss.hp / activeBoss.maxHp));
-    ctx.fillStyle = activeColor;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = activeColor;
-    ctx.fillRect(barX, barY, fillW, barH);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(barX, barY, barW, barH);
+
+      const fillW = barW * Math.max(0, Math.min(1, activeBoss.hp / activeBoss.maxHp));
+      ctx.fillStyle = activeColor;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = activeColor;
+      ctx.fillRect(barX, barY, fillW, barH);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // Большое визуальное уведомление о появлении босса в арене
+  if (bossWarningTimer > 0) {
+    const alpha = Math.min(1, bossWarningTimer, (3.5 - bossWarningTimer) * 2.5);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+
+    const bannerW = Math.min(480, W * 0.88);
+    const bannerH = 50;
+    const bannerX = (W - bannerW) / 2;
+    const bannerY = 82;
+
+    const pulse = 0.85 + Math.sin(performance.now() * 0.012) * 0.15;
+    ctx.fillStyle = 'rgba(10, 12, 22, 0.94)';
+    ctx.fillRect(bannerX, bannerY, bannerW, bannerH);
+    ctx.strokeStyle = bossWarningColor;
+    ctx.lineWidth = 2 * pulse;
+    ctx.shadowColor = bossWarningColor;
+    ctx.shadowBlur = 14 * pulse;
+    ctx.strokeRect(bannerX, bannerY, bannerW, bannerH);
+
+    ctx.textAlign = 'center';
+    ctx.font = "900 15px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = bossWarningColor;
+    ctx.fillText(bossWarningText, W / 2, bannerY + 22);
+
+    ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = '#cbd5e1';
     ctx.shadowBlur = 0;
+    ctx.fillText(bossWarningSub, W / 2, bannerY + 40);
+
+    ctx.restore();
   }
 
   // Виртуальный экранный джойстик при таче / зажатой мыши
