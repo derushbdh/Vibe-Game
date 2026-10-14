@@ -229,38 +229,193 @@ h1 {
   background: #2a355a;
 }
 
-#levelModal,
-#statsModal {
+#levelModal {
   display: none;
+  backdrop-filter: blur(8px);
+  background: rgba(3, 5, 12, 0.88);
 }
 
+.lvl-box {
+  background: radial-gradient(circle at 50% 0%, #1a2244 0%, #0c1020 100%);
+  border: 2px solid #b829ff;
+  box-shadow: 0 0 60px rgba(184, 41, 255, 0.35), inset 0 0 40px rgba(184, 41, 255, 0.08);
+  position: relative;
+  overflow: hidden;
+  max-width: 820px;
+}
+
+.lvl-header {
+  margin-bottom: 24px;
+}
+
+.lvl-title {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #00ffcc, #b829ff, #ff2a85);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  text-transform: uppercase;
+  animation: glowPulse 2s infinite alternate ease-in-out;
+}
+
+@keyframes glowPulse {
+  0% { filter: drop-shadow(0 0 8px rgba(0, 255, 204, 0.5)); transform: scale(1); }
+  100% { filter: drop-shadow(0 0 20px rgba(184, 41, 255, 0.85)); transform: scale(1.02); }
+}
+
+.lvl-sub {
+  color: #9ab4d6;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+/* КАРТОЧКИ НАВЫКОВ С АНИМАЦИЕЙ И СВЕЧЕНИЕМ */
 .lvl-card {
-  border-color: #b829ff;
-  background: linear-gradient(180deg, #1b203a, #121528);
+  position: relative;
+  background: linear-gradient(160deg, #18203d 0%, #0e1224 100%);
+  border: 2px solid #2f3c6e;
+  border-radius: 16px;
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  overflow: hidden;
+  min-height: 220px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+  animation: cardEntrance 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+@keyframes cardEntrance {
+  0% { opacity: 0; transform: translateY(30px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.lvl-card:nth-child(1) { animation-delay: 0.04s; }
+.lvl-card:nth-child(2) { animation-delay: 0.10s; }
+.lvl-card:nth-child(3) { animation-delay: 0.16s; }
+
+.lvl-card::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -70%;
+  width: 220%;
+  height: 220%;
+  background: linear-gradient(60deg, transparent 40%, rgba(255, 255, 255, 0.12) 50%, transparent 60%);
+  transform: rotate(25deg);
+  pointer-events: none;
+  transition: transform 0.6s ease;
 }
 
 .lvl-card:hover {
-  border-color: #00ffcc;
-  box-shadow: 0 0 22px rgba(184, 41, 255, 0.45);
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 16px 36px rgba(0, 255, 204, 0.25), 0 0 25px var(--accent, #00ffcc);
+  border-color: var(--accent, #00ffcc);
 }
 
-.lvl-badge {
-  background: #b829ff;
-  color: #fff;
+.lvl-card:hover::after {
+  transform: rotate(25deg) translate(30%, 30%);
+}
+
+.lvl-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.skill-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1.5px solid var(--accent, #00ffcc);
+  box-shadow: 0 0 14px var(--accent-glow, rgba(0, 255, 204, 0.4));
+}
+
+.lvl-card-badge {
   font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-pre {
-  background: #090b14;
-  padding: 12px;
-  border-radius: 8px;
-  text-align: left;
-  font-size: 12px;
-  color: #00ffcc;
-  max-height: 240px;
-  overflow-y: auto;
-  border: 1px solid #223;
-  font-family: Consolas, monospace;
+.lvl-card-badge.new {
+  background: linear-gradient(90deg, #ffd700, #ff8800);
+  color: #06070d;
+  font-weight: 900;
+  border: none;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+  animation: pulseBadge 1.2s infinite alternate;
+}
+
+@keyframes pulseBadge {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.06); }
+}
+
+.lvl-card-badge.upgrade {
+  background: rgba(184, 41, 255, 0.25);
+  border-color: #b829ff;
+  color: #e0aaff;
+}
+
+.lvl-card h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.lvl-card p {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: #9ab4d6;
+  line-height: 1.4;
+}
+
+.lvl-stars-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.star {
+  font-size: 15px;
+  color: #334155;
+}
+
+.star.active {
+  color: var(--accent, #00ffcc);
+  text-shadow: 0 0 8px var(--accent, #00ffcc);
+}
+
+.star.next {
+  color: #ffd700;
+  text-shadow: 0 0 10px #ffd700;
+  animation: starPulse 0.8s infinite alternate ease-in-out;
+}
+
+@keyframes starPulse {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.25); }
 }

@@ -23,6 +23,55 @@ interface SkillInfo {
   name: string;
   desc: string;
   max: number;
+  type: 'weapon' | 'passive';
+  color: string;
+  icon: string;
+}
+
+// --- СИНТЕЗАТОР ЗВУКОВ (WEB AUDIO API БЕЗ ВНЕШНИХ ФАЙЛОВ) ---
+let audioCtx: AudioContext | null = null;
+function playSound(type: 'levelup' | 'upgrade'): void {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const now = audioCtx.currentTime;
+
+    if (type === 'levelup') {
+      // Мажорный перелив победы (C5 -> E5 -> G5 -> C6)
+      const freqs = [523.25, 659.25, 783.99, 1046.5];
+      freqs.forEach((freq, idx) => {
+        const osc = audioCtx!.createOscillator();
+        const gain = audioCtx!.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+        gain.gain.setValueAtTime(0.16, now + idx * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.32);
+        osc.connect(gain);
+        gain.connect(audioCtx!.destination);
+        osc.start(now + idx * 0.07);
+        osc.stop(now + idx * 0.07 + 0.35);
+      });
+    } else if (type === 'upgrade') {
+      // Сочный футуристический щелчок подтверждения
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(1400, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    }
+  } catch {
+    // Безопасный fallback, если аудио заблокировано политикой браузера
+  }
 }
 
 interface RunRecord {
@@ -207,7 +256,7 @@ const CLASSES: HeroClass[] = [
   {
     name: 'Фантом',
     desc: 'Быстрый ассасин. Старт: Орбитальные кибер-клинки',
-    price: 50,
+    price: 150,
     hp: 85,
     speed: 3.6,
     startSkill: 'blades',
@@ -216,7 +265,7 @@ const CLASSES: HeroClass[] = [
   {
     name: 'Техномант',
     desc: 'Повелитель молний. Старт: Цепная молния Теслы',
-    price: 100,
+    price: 320,
     hp: 90,
     speed: 3.2,
     startSkill: 'lightning',
@@ -226,52 +275,76 @@ const CLASSES: HeroClass[] = [
 
 // --- ПОСТОЯННЫЕ АПГРЕЙДЫ В АНГАРЕ ---
 const META_LIST: MetaUpgrade[] = [
-  { key: 'hp', name: 'Титановая броня', desc: '+20 к макс. здоровью на старте', cost: 30, max: 5 },
-  { key: 'dmg', name: 'Ядро перегрузки', desc: '+15% ко всему урону навсегда', cost: 35, max: 5 },
-  { key: 'magnet', name: 'Грави-сборщик', desc: '+30% к радиусу сбора кристаллов', cost: 25, max: 5 },
+  { key: 'hp', name: 'Титановая броня', desc: '+20 к макс. здоровью на старте', cost: 55, max: 5 },
+  { key: 'dmg', name: 'Ядро перегрузки', desc: '+15% ко всему урону навсегда', cost: 70, max: 5 },
+  { key: 'magnet', name: 'Грави-сборщик', desc: '+30% к радиусу сбора кристаллов', cost: 45, max: 5 },
 ];
 
 // --- СПОСОБНОСТИ И ОРУЖИЕ ---
 const SKILLS: Record<string, SkillInfo> = {
   blaster: {
     name: 'Авто-бластер',
-    desc: 'Стреляет в ближайшего врага (+снаряды и выше темп с уровнем)',
+    desc: 'Стреляет скоростным веером импульсов в ближайших врагов',
     max: 5,
+    type: 'weapon',
+    color: '#00ffcc',
+    icon: '⯈',
   },
   blades: {
     name: 'Кибер-клинки',
-    desc: 'Вокруг героя вращаются энергетические лезвия, разрезая врагов',
+    desc: 'Вокруг героя вращаются смертоносные лезвия, разрезая врагов',
     max: 5,
+    type: 'weapon',
+    color: '#ff2a85',
+    icon: '✦',
   },
   lightning: {
     name: 'Цепная молния',
-    desc: 'Бьет мощным разрядом по нескольким врагам вокруг тебя',
+    desc: 'Бьет мощным дуговым разрядом Теслы сразу по группе врагов',
     max: 5,
+    type: 'weapon',
+    color: '#b829ff',
+    icon: '⚡',
   },
   nova: {
     name: 'Сверхновая',
-    desc: 'Выпускает взрывную волну, которая наносит урон и отталкивает толпу',
+    desc: 'Взрывная волна: наносит колоссальный урон и отбрасывает толпу',
     max: 5,
+    type: 'weapon',
+    color: '#ff6600',
+    icon: '💥',
   },
   chakram: {
     name: 'Рикошет-диск',
-    desc: 'Запускает бумеранг, отскакивающий от врага к врагу',
+    desc: 'Запускает бумеранг-чакрам, многократно отскакивающий от целей',
     max: 5,
+    type: 'weapon',
+    color: '#ffd700',
+    icon: '◆',
   },
   speed: {
     name: 'Турбо-тяга',
-    desc: '+18% к скорости передвижения и мгновенно восстанавливает +25 HP',
+    desc: '+18% к скорости передвижения и мгновенный хил +25 HP',
     max: 4,
+    type: 'passive',
+    color: '#38bdf8',
+    icon: '▲',
   },
   overclock: {
-    name: 'Разгон урона',
-    desc: '+25% к урону всего оружия',
+    name: 'Ядро урона',
+    desc: '+25% к урону всех имеющихся орудий',
     max: 5,
+    type: 'passive',
+    color: '#ef4444',
+    icon: '🔥',
   },
   magnet: {
     name: 'Супер-магнит',
-    desc: '+45% к радиусу притяжения кристаллов и +30 HP',
+    desc: '+45% к радиусу сбора кристаллов и +30 HP',
     max: 4,
+    type: 'passive',
+    color: '#a855f7',
+    icon: '🧲',
   },
 };
 
@@ -317,7 +390,7 @@ function renderMenu(banner: string | null = null): void {
   mGrid.innerHTML = '';
   META_LIST.forEach((m) => {
     const lvl = save.meta[m.key] || 0;
-    const price = m.cost * (lvl + 1);
+    const price = Math.round(m.cost * Math.pow(1.75, lvl));
     const isMax = lvl >= m.max;
     const d = document.createElement('div');
     d.className = 'card';
@@ -457,6 +530,7 @@ function openLevelUp(): void {
   state = 'LEVEL_UP';
   joy.active = false;
   joy.dx = joy.dy = 0;
+  playSound('levelup');
 
   const box = document.getElementById('upgradeChoices')!;
   box.innerHTML = '';
@@ -466,17 +540,48 @@ function openLevelUp(): void {
 
   picks.forEach((k) => {
     const curLvl = player.skills[k] || 0;
+    const nextLvl = curLvl + 1;
     const sk = SKILLS[k];
+    const isNew = curLvl === 0;
+
+    let starsHtml = '';
+    for (let s = 1; s <= sk.max; s++) {
+      if (s <= curLvl) {
+        starsHtml += `<span class="star active">★</span>`;
+      } else if (s === nextLvl) {
+        starsHtml += `<span class="star next">★</span>`;
+      } else {
+        starsHtml += `<span class="star">☆</span>`;
+      }
+    }
+
     const div = document.createElement('div');
     div.className = 'card lvl-card';
+    div.style.setProperty('--accent', sk.color);
+    div.style.setProperty('--accent-glow', `${sk.color}66`);
+
     div.innerHTML = `
       <div>
-        <h3>${sk.name} <span class="lvl-badge">${curLvl === 0 ? 'НОВОЕ!' : `УР ${curLvl} → ${curLvl + 1}`}</span></h3>
+        <div class="lvl-card-top">
+          <div class="skill-icon-wrap" style="color:${sk.color}">${sk.icon}</div>
+          <span class="lvl-card-badge ${isNew ? 'new' : 'upgrade'}">
+            ${isNew ? '★ НОВОЕ' : `УРОВЕНЬ ${nextLvl}`}
+          </span>
+        </div>
+        <h3 style="color:${sk.color}">${sk.name}</h3>
         <p>${sk.desc}</p>
       </div>
+      <div class="lvl-stars-row">
+        ${starsHtml}
+        <span style="font-size:11px; font-weight:700; color:#94a3b8; margin-left:auto;">
+          УР ${nextLvl}/${sk.max}
+        </span>
+      </div>
     `;
+
     div.onclick = () => {
-      player.skills[k] = curLvl + 1;
+      playSound('upgrade');
+      player.skills[k] = nextLvl;
       if (k === 'speed') {
         player.speed *= 1.18;
         player.hp = Math.min(player.maxHp, player.hp + 25);
