@@ -1042,6 +1042,19 @@ function openLevelUp(): void {
   box.innerHTML = '';
 
   const available = Object.keys(SKILLS).filter((k) => (player.skills[k] || 0) < SKILLS[k].max);
+  if (available.length === 0) {
+    player.hp = Math.min(player.maxHp, player.hp + 35);
+    player.runGold += 25;
+    save.gold += 25;
+    addFloatText(player.x, player.y - 20, 'МАКС УРОВЕНЬ! +35 HP / +25 CR', '#ffd700', 16);
+    playSound('heal');
+    state = 'PLAYING';
+    lastTime = performance.now();
+    if (boredomBtn) boredomBtn.style.pointerEvents = 'auto';
+    if (boredomModal) boredomModal.style.pointerEvents = 'auto';
+    updateHud();
+    return;
+  }
   const picks = available.sort(() => Math.random() - 0.5).slice(0, 3);
 
   picks.forEach((k) => {
