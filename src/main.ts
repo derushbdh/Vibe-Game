@@ -254,6 +254,8 @@ interface Player {
 
 interface Enemy {
   type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'kamikaze';
+  bossType?: 'dreadnought' | 'archon' | 'singularity';
+  bossName?: string;
   x: number;
   y: number;
   r: number;
@@ -271,6 +273,7 @@ interface Enemy {
   shootCooldown?: number;
   bossTimer?: number;
   dashTime?: number;
+  specialTimer?: number;
 }
 
 interface Bullet {
@@ -735,14 +738,43 @@ function renderMenu(banner: string | null = null): void {
     };
     mGrid.appendChild(d);
   });
+
+  // Кнопка переключения Хардкор-режима
+  const hardcoreBtn = document.getElementById('hardcoreBtn');
+  if (hardcoreBtn) {
+    const maxLvl = save.telemetry.maxLevelReached || 1;
+    if (maxLvl < 15) {
+      hardcoreBtn.className = 'btn-hardcore locked';
+      hardcoreBtn.innerHTML = `🔒 ХАРДКОР (НУЖЕН 15 УР, ТЕКУЩИЙ: ${maxLvl})`;
+      hardcoreBtn.onclick = () => {
+        const lastRunBanner = document.getElementById('lastRunBanner')!;
+        lastRunBanner.innerHTML = `<span style="color:#ff4444;font-weight:700">Хардкор откроется при достижении 15 уровня в любом забеге! (Ваш максимум: ${maxLvl} ур.)</span>`;
+      };
+    } else {
+      if (isHardcore) {
+        hardcoreBtn.className = 'btn-hardcore active';
+        hardcoreBtn.innerHTML = '☠ ХАРДКОР: ВКЛ (x2 CR)';
+      } else {
+        hardcoreBtn.className = 'btn-hardcore unlocked';
+        hardcoreBtn.innerHTML = '☠ ВКЛЮЧИТЬ ХАРДКОР (x2 CR)';
+      }
+      hardcoreBtn.onclick = () => {
+        isHardcore = !isHardcore;
+        playSound('upgrade');
+        renderMenu();
+      };
+    }
+  }
 }
 
 // --- ПЕРЕМЕННЫЕ ИГРОВОГО МИРА ---
 let state: 'MENU' | 'PLAYING' | 'LEVEL_UP' = 'MENU';
+let isHardcore = false;
 let lastTime = performance.now();
 let elapsed = 0;
 let spawnTimer = 0;
 let nextBossTime = 45;
+let bossSpawnCount = 0;
 
 let player!: Player;
 let bullets: Bullet[] = [];
@@ -835,10 +867,14 @@ function startGame(): void {
   novaWaves = [];
   elapsed = 0;
   spawnTimer = 1.0;
-  nextBossTime = 45;
+  nextBossTime = isHardcore ? 35 : 45;
+  bossSpawnCount = 0;
   currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
   state = 'PLAYING';
   lastTime = performance.now();
+
+  const hcPill = document.getElementById('hardcorePill');
+  if (hcPill) hcPill.style.display = isHardcore ? 'inline-block' : 'none';
 
   save.telemetry.totalRuns++;
   save.telemetry.classPicks[cls.name] = (save.telemetry.classPicks[cls.name] || 0) + 1;
@@ -956,34 +992,92 @@ function openLevelUp(): void {
   document.getElementById('levelModal')!.style.display = 'flex';
 }
 
-function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'kamikaze' = 'normal'): void {
+function spawnEnemy(
+  type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'kamikaze' = 'normal',
+  bossKind?: 'dreadnought' | 'archon' | 'singularity'
+): void {
   const angle = Math.random() * Math.PI * 2;
   const dist = Math.max(W, H) * 0.58 + 60;
   const x = player.x + Math.cos(angle) * dist;
   const y = player.y + Math.sin(angle) * dist;
 
+  const hcHpMult = isHardcore ? 1.45 : 1.0;
+  const hcSpeedMult = isHardcore ? 1.25 : 1.0;
+
   if (type === 'boss') {
-    const hp = 360 + elapsed * 6;
-    enemies.push({
-      type: 'boss',
-      x,
-      y,
-      r: 34,
-      hp,
-      maxHp: hp,
-      speed: 1.3,
-      dmg: 26,
-      color: '#ff0055',
-      sides: 6,
-      xp: 15,
-      gold: 25,
-      pushX: 0,
-      pushY: 0,
-      bossTimer: 70,
-      dashTime: 0,
-    });
+    const kind = bossKind || 'dreadnought';
+    if (kind === 'archon') {
+      const hp = Math.round((2100 + elapsed * 24) * hcHpMult);
+      enemies.push({
+        type: 'boss',
+        bossType: 'archon',
+        bossName: 'ШТОРМ-АРХОНТ ТЕСЛЫ',
+        x,
+        y,
+        r: 36,
+        hp,
+        maxHp: hp,
+        speed: 1.25 * hcSpeedMult,
+        dmg: 28,
+        color: '#b829ff',
+        sides: 8,
+        xp: 22,
+        gold: 35,
+        pushX: 0,
+        pushY: 0,
+        bossTimer: 75,
+        specialTimer: 140,
+        dashTime: 0,
+      });
+    } else if (kind === 'singularity') {
+      const hp = Math.round((3000 + elapsed * 30) * hcHpMult);
+      enemies.push({
+        type: 'boss',
+        bossType: 'singularity',
+        bossName: 'СИНГУЛЯРНОСТЬ БЕЗДНЫ',
+        x,
+        y,
+        r: 38,
+        hp,
+        maxHp: hp,
+        speed: 1.2 * hcSpeedMult,
+        dmg: 30,
+        color: '#ff6600',
+        sides: 10,
+        xp: 28,
+        gold: 50,
+        pushX: 0,
+        pushY: 0,
+        bossTimer: 35,
+        specialTimer: 180,
+        dashTime: 0,
+      });
+    } else {
+      const hp = Math.round((1450 + elapsed * 18) * hcHpMult);
+      enemies.push({
+        type: 'boss',
+        bossType: 'dreadnought',
+        bossName: 'КИБЕР-ДРЕДНОУТ',
+        x,
+        y,
+        r: 34,
+        hp,
+        maxHp: hp,
+        speed: 1.35 * hcSpeedMult,
+        dmg: 26,
+        color: '#ff0055',
+        sides: 6,
+        xp: 18,
+        gold: 30,
+        pushX: 0,
+        pushY: 0,
+        bossTimer: 70,
+        specialTimer: 120,
+        dashTime: 0,
+      });
+    }
   } else if (type === 'tank') {
-    const hp = 32 + elapsed * 0.9;
+    const hp = Math.round((32 + elapsed * 0.9) * (isHardcore ? 1.35 : 1.0));
     enemies.push({
       type: 'tank',
       x,
@@ -991,7 +1085,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       r: 20,
       hp,
       maxHp: hp,
-      speed: 0.95,
+      speed: 0.95 * hcSpeedMult,
       dmg: 14,
       color: '#ff8800',
       sides: 5,
@@ -1001,7 +1095,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       pushY: 0,
     });
   } else if (type === 'shooter') {
-    const hp = 16 + elapsed * 0.45;
+    const hp = Math.round((16 + elapsed * 0.45) * (isHardcore ? 1.35 : 1.0));
     enemies.push({
       type: 'shooter',
       x,
@@ -1009,7 +1103,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       r: 15,
       hp,
       maxHp: hp,
-      speed: 1.15,
+      speed: 1.15 * hcSpeedMult,
       dmg: 8,
       color: '#ff3366',
       sides: 8,
@@ -1020,7 +1114,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       shootCooldown: 40 + Math.random() * 50,
     });
   } else if (type === 'kamikaze') {
-    const hp = 8 + elapsed * 0.25;
+    const hp = Math.round((8 + elapsed * 0.25) * (isHardcore ? 1.35 : 1.0));
     enemies.push({
       type: 'kamikaze',
       x,
@@ -1028,7 +1122,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       r: 11,
       hp,
       maxHp: hp,
-      speed: 2.35,
+      speed: 2.35 * hcSpeedMult,
       dmg: 14,
       color: '#ff3b00',
       sides: 3,
@@ -1038,7 +1132,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       pushY: 0,
     });
   } else if (type === 'runner') {
-    const hp = 10 + elapsed * 0.35;
+    const hp = Math.round((10 + elapsed * 0.35) * (isHardcore ? 1.35 : 1.0));
     enemies.push({
       type: 'runner',
       x,
@@ -1046,7 +1140,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       r: 12,
       hp,
       maxHp: hp,
-      speed: 2.05,
+      speed: 2.05 * hcSpeedMult,
       dmg: 8,
       color: '#ff2a85',
       sides: 4,
@@ -1056,7 +1150,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       pushY: 0,
     });
   } else {
-    const hp = 14 + elapsed * 0.5;
+    const hp = Math.round((14 + elapsed * 0.5) * (isHardcore ? 1.35 : 1.0));
     enemies.push({
       type: 'normal',
       x,
@@ -1064,7 +1158,7 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
       r: 14,
       hp,
       maxHp: hp,
-      speed: 1.35,
+      speed: 1.35 * hcSpeedMult,
       dmg: 10,
       color: '#ff4422',
       sides: 3,
@@ -1077,7 +1171,11 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'k
 }
 
 function damageEnemy(e: Enemy, dmg: number): void {
-  const finalDmg = Math.round(dmg * player.dmgMult);
+  let finalDmg = Math.round(dmg * player.dmgMult);
+  if (e.type === 'boss') {
+    // Укрепленная броня боссов (-30% входящего урона)
+    finalDmg = Math.max(3, Math.round(finalDmg * 0.7));
+  }
   e.hp -= finalDmg;
   addFloatText(e.x, e.y - e.r, `${finalDmg}`, finalDmg > 25 ? '#ffea00' : '#ffffff', finalDmg > 25 ? 16 : 13);
 }
@@ -1101,8 +1199,9 @@ function damagePlayer(dmg: number): boolean {
       hero: CLASSES[save.selectedClass].name,
     });
     saveGame();
+    const modeLabel = isHardcore ? ' [ХАРДКОР x2 CR]' : '';
     renderMenu(
-      `Забег завершен! Время: ${Math.round(elapsed)} сек | Уровень: ${player.lvl} | Добыто: +${player.runGold} CR`
+      `Забег завершен${modeLabel}! Время: ${Math.round(elapsed)} сек | Уровень: ${player.lvl} | Добыто: +${player.runGold} CR`
     );
     document.getElementById('menuModal')!.style.display = 'flex';
     return true;
@@ -1378,9 +1477,23 @@ function update(dt: number): void {
 
   // 4. СПАВН И ПОВЕДЕНИЕ ВРАГОВ
   if (elapsed >= nextBossTime) {
-    nextBossTime += 45;
-    spawnEnemy('boss');
-    addFloatText(player.x, player.y - 50, 'ВНИМАНИЕ: БОСС НА АРЕНЕ!', '#ff0055', 20);
+    nextBossTime += isHardcore ? 35 : 45;
+    bossSpawnCount++;
+    const bossKinds: ('dreadnought' | 'archon' | 'singularity')[] = ['dreadnought', 'archon', 'singularity'];
+    const curKind = bossKinds[(bossSpawnCount - 1) % bossKinds.length];
+    spawnEnemy('boss', curKind);
+
+    const bossNames = {
+      dreadnought: 'КИБЕР-ДРЕДНОУТ',
+      archon: 'ШТОРМ-АРХОНТ ТЕСЛЫ',
+      singularity: 'СИНГУЛЯРНОСТЬ БЕЗДНЫ',
+    };
+    const bossColors = {
+      dreadnought: '#ff0055',
+      archon: '#b829ff',
+      singularity: '#ff6600',
+    };
+    addFloatText(player.x, player.y - 50, `ВНИМАНИЕ: ${bossNames[curKind]}!`, bossColors[curKind], 20);
   }
 
   const maxEnemies = Math.min(50, 8 + Math.floor(elapsed * 0.45));
@@ -1460,9 +1573,10 @@ function update(dt: number): void {
         addParticles(e.x, e.y, e.color, e.type === 'boss' ? 35 : 10, 4);
       }
 
+      const earnedGold = isHardcore ? e.gold * 2 : e.gold;
       player.kills++;
-      player.runGold += e.gold;
-      save.gold += e.gold;
+      player.runGold += earnedGold;
+      save.gold += earnedGold;
       gems.push({ x: e.x, y: e.y, xp: e.xp, isBoss: e.type === 'boss' });
 
       // Накапливающийся шанс выпадения аптечки (pity-timer)
@@ -1486,51 +1600,152 @@ function update(dt: number): void {
     let moveSpeed = effectiveSpeed;
 
     if (e.type === 'boss') {
-      // Босс неуязвим к отталкиванию
+      // Все боссы неуязвимы к отталкиванию
       e.pushX = 0;
       e.pushY = 0;
 
       const isEnraged = e.hp < e.maxHp * 0.45;
       const baseSpeed = effectiveSpeed * (isEnraged ? 1.25 : 1.0);
+      const bKind = e.bossType || 'dreadnought';
 
-      // Активный таранный рывок (Dash)
-      if (e.dashTime && e.dashTime > 0) {
-        e.dashTime -= dt;
-        moveSpeed = baseSpeed * 2.6;
-        if (Math.random() < 0.6) {
-          addParticles(e.x, e.y, isEnraged ? '#ff0033' : '#ff0055', 2, 2.5);
-        }
-      } else {
-        moveSpeed = baseSpeed;
-      }
-
-      // Атаки босса
-      e.bossTimer = (e.bossTimer || 70) - dt;
-      if (e.bossTimer <= 0) {
-        const doDash = Math.random() < 0.35 && distToPlayer > 180;
-        if (doDash) {
-          e.dashTime = 38; // рывок вперед
-          addFloatText(e.x, e.y - e.r - 15, 'РЫВОК!', isEnraged ? '#ff0033' : '#ff0055', 18);
-          e.bossTimer = isEnraged ? 85 : 130;
+      if (bKind === 'dreadnought') {
+        // --- БОСС 1: КИБЕР-ДРЕДНОУТ ---
+        // Таранный рывок (Dash) + Веерный залп плазмой
+        if (e.dashTime && e.dashTime > 0) {
+          e.dashTime -= dt;
+          moveSpeed = baseSpeed * 2.6;
+          if (Math.random() < 0.6) {
+            addParticles(e.x, e.y, isEnraged ? '#ff0033' : '#ff0055', 2, 2.5);
+          }
         } else {
-          // Веерный залп снарядами (5 в 1-й фазе, 7 в фазе ярости)
-          const bulletCount = isEnraged ? 7 : 5;
-          const spread = isEnraged ? 0.95 : 0.75;
-          for (let b = 0; b < bulletCount; b++) {
-            const bAngle = aimAngle - spread / 2 + (b / (bulletCount - 1)) * spread;
+          moveSpeed = baseSpeed;
+        }
+
+        e.bossTimer = (e.bossTimer || 70) - dt;
+        if (e.bossTimer <= 0) {
+          const doDash = Math.random() < 0.35 && distToPlayer > 180;
+          if (doDash) {
+            e.dashTime = 38;
+            addFloatText(e.x, e.y - e.r - 15, 'РЫВОК!', isEnraged ? '#ff0033' : '#ff0055', 18);
+            e.bossTimer = isEnraged ? 85 : 130;
+          } else {
+            const bulletCount = isEnraged ? 7 : 5;
+            const spread = isEnraged ? 0.95 : 0.75;
+            for (let b = 0; b < bulletCount; b++) {
+              const bAngle = aimAngle - spread / 2 + (b / (bulletCount - 1)) * spread;
+              enemyBullets.push({
+                x: e.x + Math.cos(bAngle) * (e.r + 6),
+                y: e.y + Math.sin(bAngle) * (e.r + 6),
+                vx: Math.cos(bAngle) * 5.4,
+                vy: Math.sin(bAngle) * 5.4,
+                dmg: Math.round(11 + elapsed * 0.04),
+                r: 6,
+                color: isEnraged ? '#ff0033' : '#ff0055',
+                life: 125,
+              });
+            }
+            playSound('enemy_shoot');
+            e.bossTimer = isEnraged ? 90 : 145;
+          }
+        }
+      } else if (bKind === 'archon') {
+        // --- БОСС 2: ШТОРМ-АРХОНТ ТЕСЛЫ ---
+        // 360° Кольцевой залп плазмы + Удар цепной молнией в игрока
+        moveSpeed = baseSpeed * 0.92;
+
+        e.bossTimer = (e.bossTimer || 75) - dt;
+        if (e.bossTimer <= 0) {
+          const count = isEnraged ? 14 : 10;
+          for (let b = 0; b < count; b++) {
+            const bAngle = (b / count) * Math.PI * 2 + elapsed;
             enemyBullets.push({
               x: e.x + Math.cos(bAngle) * (e.r + 6),
               y: e.y + Math.sin(bAngle) * (e.r + 6),
-              vx: Math.cos(bAngle) * 5.4,
-              vy: Math.sin(bAngle) * 5.4,
-              dmg: Math.round(11 + elapsed * 0.04),
+              vx: Math.cos(bAngle) * 4.6,
+              vy: Math.sin(bAngle) * 4.6,
+              dmg: Math.round(10 + elapsed * 0.04),
               r: 6,
-              color: isEnraged ? '#ff0033' : '#ff0055',
-              life: 125,
+              color: '#b829ff',
+              life: 130,
             });
           }
+          playSound('nova');
+          addFloatText(e.x, e.y - e.r - 15, 'ШТОРМ-РАЗРЯД!', '#b829ff', 17);
+          e.bossTimer = isEnraged ? 85 : 135;
+        }
+
+        e.specialTimer = (e.specialTimer || 140) - dt;
+        if (e.specialTimer <= 0 && distToPlayer < 520) {
+          lightningArcs.push({
+            points: [{ x: e.x, y: e.y }, { x: player.x, y: player.y }],
+            life: 1.2,
+          });
+          playSound('lightning');
+          const isDead = damagePlayer(15);
+          addParticles(player.x, player.y, '#b829ff', 8, 3);
+          addFloatText(player.x, player.y - 25, 'МОЛНИЯ ТЕСЛЫ!', '#b829ff', 16);
+          e.specialTimer = isEnraged ? 115 : 165;
+          if (isDead) return;
+        }
+      } else if (bKind === 'singularity') {
+        // --- БОСС 3: СИНГУЛЯРНОСТЬ БЕЗДНЫ ---
+        // Гравитационная воронка (засасывает корабль) + Спиральный шквал + Призыв камикадзе
+        moveSpeed = baseSpeed * 0.85;
+
+        // Гравитационное притяжение игрока к центру черной дыры
+        if (distToPlayer < 480) {
+          const pull = (1 - distToPlayer / 480) * (isEnraged ? 3.5 : 2.4);
+          player.x += Math.cos(aimAngle + Math.PI) * pull * dt;
+          player.y += Math.sin(aimAngle + Math.PI) * pull * dt;
+          if (Math.random() < 0.25) {
+            novaWaves.push({ x: e.x, y: e.y, r: 8, maxR: 70 });
+          }
+        }
+
+        // Спиральный непрерывный огонь
+        e.bossTimer = (e.bossTimer || 30) - dt;
+        if (e.bossTimer <= 0) {
+          const spiralAngle = elapsed * 5.2;
+          enemyBullets.push({
+            x: e.x + Math.cos(spiralAngle) * (e.r + 6),
+            y: e.y + Math.sin(spiralAngle) * (e.r + 6),
+            vx: Math.cos(spiralAngle) * 5.4,
+            vy: Math.sin(spiralAngle) * 5.4,
+            dmg: Math.round(9 + elapsed * 0.03),
+            r: 5.5,
+            color: '#ff6600',
+            life: 120,
+          });
           playSound('enemy_shoot');
-          e.bossTimer = isEnraged ? 90 : 145;
+          e.bossTimer = isEnraged ? 10 : 16;
+        }
+
+        // Спавн дронов-камикадзе
+        e.specialTimer = (e.specialTimer || 180) - dt;
+        if (e.specialTimer <= 0) {
+          addFloatText(e.x, e.y - e.r - 15, 'ПРИЗЫВ КАМИКАДЗЕ!', '#ff6600', 18);
+          playSound('explosion');
+          const count = isEnraged ? 3 : 2;
+          for (let k = 0; k < count; k++) {
+            const ka = Math.random() * Math.PI * 2;
+            enemies.push({
+              type: 'kamikaze',
+              x: e.x + Math.cos(ka) * (e.r + 20),
+              y: e.y + Math.sin(ka) * (e.r + 20),
+              r: 11,
+              hp: 6,
+              maxHp: 6,
+              speed: 2.4,
+              dmg: 12,
+              color: '#ff3b00',
+              sides: 3,
+              xp: 1,
+              gold: 1,
+              pushX: 0,
+              pushY: 0,
+            });
+          }
+          e.specialTimer = isEnraged ? 130 : 200;
         }
       }
     } else if (e.type === 'shooter') {
@@ -1757,16 +1972,49 @@ function draw(): void {
     // Силовое кольцо и ядро босса
     if (e.type === 'boss') {
       const isEnraged = e.hp < e.maxHp * 0.45;
-      ctx.strokeStyle = isEnraged ? '#ff0033' : 'rgba(255, 0, 85, 0.65)';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, e.r + 9, 0, Math.PI * 2);
-      ctx.stroke();
+      const bKind = e.bossType || 'dreadnought';
 
-      ctx.fillStyle = isEnraged ? '#ffea00' : '#ffffff';
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, 7, 0, Math.PI * 2);
-      ctx.fill();
+      if (bKind === 'archon') {
+        // Электрическое защитное поле Шторм-Архонта
+        ctx.strokeStyle = isEnraged ? '#ff00ff' : 'rgba(184, 41, 255, 0.75)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r + 10, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = isEnraged ? '#00ffff' : '#ffffff';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (bKind === 'singularity') {
+        // Воронка сингулярности с черным центром
+        ctx.strokeStyle = isEnraged ? '#ffea00' : 'rgba(255, 102, 0, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r + 11, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#0a0503';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = isEnraged ? '#ff3b00' : '#ffea00';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Кибер-Дредноут
+        ctx.strokeStyle = isEnraged ? '#ff0033' : 'rgba(255, 0, 85, 0.65)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r + 9, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = isEnraged ? '#ffea00' : '#ffffff';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     if (e.hp < e.maxHp || e.type === 'boss') {
@@ -1864,37 +2112,45 @@ function draw(): void {
   const activeBoss = enemies.find((e) => e.type === 'boss');
   if (activeBoss) {
     const isEnraged = activeBoss.hp < activeBoss.maxHp * 0.45;
+    const bKind = activeBoss.bossType || 'dreadnought';
     const barW = Math.min(460, W * 0.6);
     const barH = 14;
     const barX = (W - barW) / 2;
     const barY = 56;
 
+    const themeColor = bKind === 'archon' ? '#b829ff' : bKind === 'singularity' ? '#ff6600' : '#ff0055';
+    const enragedColor = bKind === 'archon' ? '#ff00ff' : bKind === 'singularity' ? '#ffea00' : '#ff0033';
+    const activeColor = isEnraged ? enragedColor : themeColor;
+
     ctx.fillStyle = 'rgba(8, 10, 18, 0.9)';
     ctx.fillRect(barX - 8, barY - 24, barW + 16, barH + 32);
-    ctx.strokeStyle = isEnraged ? '#ff0033' : '#ff0055';
+    ctx.strokeStyle = activeColor;
     ctx.lineWidth = 1.8;
     ctx.strokeRect(barX - 8, barY - 24, barW + 16, barH + 32);
 
     ctx.font = "800 12px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = isEnraged ? '#ff3366' : '#ff0055';
+    ctx.fillStyle = activeColor;
     ctx.textAlign = 'left';
+    const bName = activeBoss.bossName || 'БОСС';
     ctx.fillText(
-      isEnraged ? '⚠ БОСС: КИБЕР-ДРЕДНОУТ [РЕЖИМ ЯРОСТИ!]' : 'БОСС: КИБЕР-ДРЕДНОУТ [ФАЗА 1]',
+      isEnraged ? `⚠ ${bName} [РЕЖИМ ЯРОСТИ!]` : `${bName} [ФАЗА 1]`,
       barX,
       barY - 8
     );
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`${Math.max(0, Math.ceil(activeBoss.hp))} / ${Math.round(activeBoss.maxHp)}`, barX + barW, barY - 8);
+    const bossMaxHp = Math.round(activeBoss.maxHp);
+    const bossCurHp = Math.min(bossMaxHp, Math.max(0, Math.ceil(activeBoss.hp)));
+    ctx.fillText(`${bossCurHp} / ${bossMaxHp}`, barX + barW, barY - 8);
 
-    ctx.fillStyle = 'rgba(255, 0, 85, 0.2)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.fillRect(barX, barY, barW, barH);
 
-    const fillW = barW * Math.max(0, activeBoss.hp / activeBoss.maxHp);
-    ctx.fillStyle = isEnraged ? '#ff0033' : '#ff0055';
+    const fillW = barW * Math.max(0, Math.min(1, activeBoss.hp / activeBoss.maxHp));
+    ctx.fillStyle = activeColor;
     ctx.shadowBlur = 10;
-    ctx.shadowColor = isEnraged ? '#ff0033' : '#ff0055';
+    ctx.shadowColor = activeColor;
     ctx.fillRect(barX, barY, fillW, barH);
     ctx.shadowBlur = 0;
   }
