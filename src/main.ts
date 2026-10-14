@@ -295,7 +295,7 @@ function renderMenu(banner: string | null = null): void {
         <h3 style="color:${c.color}">${c.name}</h3>
         <p>${c.desc}</p>
       </div>
-      <div class="cost">${unlocked ? (sel ? '✓ ВЫБРАН' : 'ВЫБРАТЬ') : `КУПИТЬ: <span class="coin">C</span> ${c.price} CR`}</div>
+      <div class="cost">${unlocked ? (sel ? '✓ ВЫБРАН' : 'ВЫБРАТЬ') : `<span>КУПИТЬ:</span> <span class="coin">C</span> <span>${c.price} CR</span>`}</div>
     `;
     d.onclick = () => {
       if (unlocked) {
@@ -326,7 +326,7 @@ function renderMenu(banner: string | null = null): void {
         <h3>${m.name} <span>${lvl}/${m.max}</span></h3>
         <p>${m.desc}</p>
       </div>
-      <div class="cost">${isMax ? 'МАКСИМУМ' : `УЛУЧШИТЬ: <span class="coin">C</span> ${price} CR`}</div>
+      <div class="cost">${isMax ? 'МАКСИМУМ' : `<span>УЛУЧШИТЬ:</span> <span class="coin">C</span> <span>${price} CR</span>`}</div>
     `;
     d.onclick = () => {
       if (!isMax && save.gold >= price) {
@@ -1121,16 +1121,6 @@ function draw(): void {
   }
 }
 
-function showStats(): void {
-  document.getElementById('statsOutput')!.textContent = JSON.stringify(save.telemetry, null, 2);
-  document.getElementById('statsModal')!.style.display = 'flex';
-}
-
-function copyTelemetry(): void {
-  navigator.clipboard.writeText(JSON.stringify(save.telemetry, null, 2));
-  alert('JSON со статистикой скопирован!');
-}
-
 function loop(now: number): void {
   const dt = Math.min(2.5, (now - lastTime) / 16.667);
   lastTime = now;
@@ -1141,11 +1131,7 @@ function loop(now: number): void {
 
 // Привязка кнопок интерфейса
 document.getElementById('startBtn')!.onclick = startGame;
-document.getElementById('statsBtn')!.onclick = showStats;
-document.getElementById('copyStatsBtn')!.onclick = copyTelemetry;
-document.getElementById('closeStatsBtn')!.onclick = () => {
-  document.getElementById('statsModal')!.style.display = 'none';
-};
 
 renderMenu();
 requestAnimationFrame(loop);
+
