@@ -1237,6 +1237,43 @@ function loop(now: number): void {
 // Привязка кнопок интерфейса
 document.getElementById('startBtn')!.onclick = startGame;
 
+// --- ЛОГИКА "МНЕ СКУЧНО" (ЧИСТКА КОВРА) ---
+const videoList = ['./videos/carpet1.mp4', './videos/carpet2.mp4'];
+let currentVideoIdx = 0;
+
+const boredomBtn = document.getElementById('boredomBtn')!;
+const boredomModal = document.getElementById('boredomModal')!;
+const boredomVideo = document.getElementById('boredomVideo') as HTMLVideoElement;
+const boredomNextBtn = document.getElementById('boredomNextBtn')!;
+const boredomCloseBtn = document.getElementById('boredomCloseBtn')!;
+
+function toggleBoredom(): void {
+  const isVisible = boredomModal.style.display === 'block';
+  if (isVisible) {
+    boredomModal.style.display = 'none';
+    boredomBtn.classList.remove('active');
+    boredomVideo.pause();
+  } else {
+    boredomModal.style.display = 'block';
+    boredomBtn.classList.add('active');
+    boredomVideo.play().catch(() => {});
+  }
+}
+
+boredomBtn.onclick = toggleBoredom;
+boredomCloseBtn.onclick = () => {
+  boredomModal.style.display = 'none';
+  boredomBtn.classList.remove('active');
+  boredomVideo.pause();
+};
+
+boredomNextBtn.onclick = () => {
+  currentVideoIdx = (currentVideoIdx + 1) % videoList.length;
+  boredomVideo.src = videoList[currentVideoIdx];
+  boredomVideo.play().catch(() => {});
+};
+
 renderMenu();
 requestAnimationFrame(loop);
+
 
