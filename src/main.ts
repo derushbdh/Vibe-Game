@@ -843,13 +843,16 @@ function togglePause(paused: boolean): void {
     state = 'PAUSED';
     joy.active = false;
     joy.dx = joy.dy = 0;
-    closeBoredom();
+    pauseBoredom();
     if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
+    if (boredomModal) boredomModal.style.pointerEvents = 'none';
     if (pauseModal) pauseModal.style.display = 'flex';
   } else if (!paused && state === 'PAUSED') {
     state = 'PLAYING';
     lastTime = performance.now();
+    resumeBoredom();
     if (boredomBtn) boredomBtn.style.pointerEvents = 'auto';
+    if (boredomModal) boredomModal.style.pointerEvents = 'auto';
     if (pauseModal) pauseModal.style.display = 'none';
   }
 }
@@ -859,6 +862,7 @@ function surrenderRun(): void {
   if (pauseModal) pauseModal.style.display = 'none';
   closeBoredom();
   if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
+  if (boredomModal) boredomModal.style.pointerEvents = 'none';
   state = 'MENU';
   save.telemetry.bestSurvivalSec = Math.max(save.telemetry.bestSurvivalSec, Math.round(elapsed));
   save.telemetry.maxLevelReached = Math.max(save.telemetry.maxLevelReached, player.lvl);
@@ -917,6 +921,7 @@ window.addEventListener('pointerup', () => {
 function startGame(): void {
   document.getElementById('menuModal')!.style.display = 'none';
   if (boredomBtn) boredomBtn.style.pointerEvents = 'auto';
+  if (boredomModal) boredomModal.style.pointerEvents = 'auto';
   const cls = CLASSES[save.selectedClass];
   const maxHp = cls.hp + (save.meta.hp || 0) * 20;
 
@@ -996,8 +1001,9 @@ function openLevelUp(): void {
   state = 'LEVEL_UP';
   joy.active = false;
   joy.dx = joy.dy = 0;
-  closeBoredom();
+  pauseBoredom();
   if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
+  if (boredomModal) boredomModal.style.pointerEvents = 'none';
   playSound('levelup');
 
   const box = document.getElementById('upgradeChoices')!;
@@ -1080,7 +1086,9 @@ function openLevelUp(): void {
       } else {
         state = 'PLAYING';
         lastTime = performance.now();
+        resumeBoredom();
         if (boredomBtn) boredomBtn.style.pointerEvents = 'auto';
+        if (boredomModal) boredomModal.style.pointerEvents = 'auto';
         updateHud();
       }
     };
@@ -1294,6 +1302,7 @@ function damagePlayer(dmg: number): boolean {
     state = 'MENU';
     closeBoredom();
     if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
+    if (boredomModal) boredomModal.style.pointerEvents = 'none';
     save.telemetry.bestSurvivalSec = Math.max(save.telemetry.bestSurvivalSec, Math.round(elapsed));
     save.telemetry.maxLevelReached = Math.max(save.telemetry.maxLevelReached, player.lvl);
     save.telemetry.totalKills += player.kills;
@@ -2776,12 +2785,22 @@ function switchVideo(): void {
   playActiveCarpet();
 }
 
-function closeBoredom(): void {
-  if (boredomModal) boredomModal.style.display = 'none';
-  if (boredomBtn) boredomBtn.classList.remove('active');
+function pauseBoredom(): void {
   carpetVideos.forEach((v) => {
     if (v) v.pause();
   });
+}
+
+function resumeBoredom(): void {
+  if (boredomModal && boredomModal.style.display === 'block') {
+    playActiveCarpet();
+  }
+}
+
+function closeBoredom(): void {
+  if (boredomModal) boredomModal.style.display = 'none';
+  if (boredomBtn) boredomBtn.classList.remove('active');
+  pauseBoredom();
 }
 
 function openBoredom(): void {
@@ -2807,6 +2826,7 @@ boredomNextBtn.onclick = switchVideo;
 boredomCloseBtn.onclick = closeBoredom;
 
 if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
+if (boredomModal) boredomModal.style.pointerEvents = 'none';
 renderMenu();
 requestAnimationFrame(loop);
 
