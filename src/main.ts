@@ -1113,7 +1113,7 @@ function spawnEnemy(
         bossTimer: 75,
         specialTimer: 140,
         dashTime: 0,
-        fieldRadius: 112,
+        fieldRadius: 135,
         fieldZapTimer: 25,
         burstCount: 0,
         burstTimer: 0,
@@ -1886,27 +1886,30 @@ function update(dt: number): void {
         }
       } else if (bKind === 'archon') {
         // --- БОСС 2: ШТОРМ-АРХОНТ ТЕСЛЫ ---
-        // Компактное электрическое поле (бьет током внутри) + Вращающийся залп спиральными шлейфами
+        // Электрическое поле (бьет током СТРОГО внутри) + Вращающийся залп спиральными шлейфами
         moveSpeed = baseSpeed * 0.92;
 
-        const fieldR = e.fieldRadius || (isEnraged ? 125 : 110);
+        const fieldR = e.fieldRadius || (isEnraged ? 155 : 135);
         e.fieldRadius = fieldR;
 
-        // 1. Урон и разряды в электрическом поле (когда игрок внутри поля)
-        e.fieldZapTimer = (e.fieldZapTimer || 25) - dt;
-        if (distToPlayer < fieldR + player.r) {
+        // 1. Урон и разряды в электрическом поле (СТРОГО когда игрок внутри поля)
+        if (distToPlayer <= fieldR + player.r) {
+          e.fieldZapTimer = (e.fieldZapTimer || 25) - dt;
           if (e.fieldZapTimer <= 0) {
             lightningArcs.push({
               points: [{ x: e.x, y: e.y }, { x: player.x, y: player.y }],
-              life: 0.8,
+              life: 0.85,
             });
             playSound('lightning');
-            const isDead = damagePlayer(8);
-            addParticles(player.x, player.y, '#b829ff', 6, 2.5);
-            addFloatText(player.x, player.y - 20, 'ТОК ТЕСЛЫ!', '#b829ff', 15);
+            const isDead = damagePlayer(9);
+            addParticles(player.x, player.y, '#b829ff', 7, 2.5);
+            addFloatText(player.x, player.y - 20, 'ТОК ТЕСЛЫ!', '#b829ff', 16);
             e.fieldZapTimer = isEnraged ? 18 : 26;
             if (isDead) return;
           }
+        } else {
+          // Вне поля таймер находится в готовности, но снаружи поля молния НЕ бьет!
+          e.fieldZapTimer = 15;
         }
 
         // 2. Вращающийся залп шлейфами (Spinning Barrage фиолетовых снарядов)
@@ -1942,21 +1945,6 @@ function update(dt: number): void {
           e.burstTimer = 0;
           addFloatText(e.x, e.y - e.r - 15, 'ШТОРМ-СПИРАЛЬ!', '#b829ff', 17);
           e.bossTimer = isEnraged ? 90 : 130;
-        }
-
-        // 3. Дальняя цепная молния при дистанции вне поля
-        e.specialTimer = (e.specialTimer || 140) - dt;
-        if (e.specialTimer <= 0 && distToPlayer < 520 && distToPlayer > fieldR) {
-          lightningArcs.push({
-            points: [{ x: e.x, y: e.y }, { x: player.x, y: player.y }],
-            life: 1.2,
-          });
-          playSound('lightning');
-          const isDead = damagePlayer(14);
-          addParticles(player.x, player.y, '#b829ff', 8, 3);
-          addFloatText(player.x, player.y - 25, 'МОЛНИЯ ТЕСЛЫ!', '#b829ff', 16);
-          e.specialTimer = isEnraged ? 120 : 170;
-          if (isDead) return;
         }
       } else if (bKind === 'singularity') {
         // --- БОСС 3: СИНГУЛЯРНОСТЬ БЕЗДНЫ ---
@@ -2264,7 +2252,7 @@ function draw(): void {
       const bKind = e.bossType || 'dreadnought';
 
       if (bKind === 'archon') {
-        const fieldR = e.fieldRadius || (isEnraged ? 125 : 110);
+        const fieldR = e.fieldRadius || (isEnraged ? 155 : 135);
 
         // Электрическое поле Теслы: эффекты молний строго внутри поля, фон полупрозрачный
         ctx.save();
