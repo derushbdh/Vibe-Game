@@ -297,6 +297,38 @@ h1 {
   box-shadow: 0 0 14px rgba(239, 68, 68, 0.4);
 }
 
+/* Плашка подсказки паузы */
+.pause-hint-pill {
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(18, 24, 44, 0.85);
+  border: 1px solid rgba(0, 255, 204, 0.35);
+  color: #94a3b8;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.pause-hint-pill kbd {
+  background: #1e294b;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #00ffcc;
+  font-family: inherit;
+  font-weight: 800;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.pause-hint-pill:hover {
+  background: rgba(30, 42, 75, 0.95);
+  border-color: #00ffcc;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(0, 255, 204, 0.3);
+}
+
 #levelModal {
   display: none;
   backdrop-filter: blur(8px);
@@ -578,6 +610,12 @@ h1 {
 .boredom-btns button:hover {
   background: #00ffcc;
   color: #06070d;
+}
+
+#boredomSpeedBtn {
+  font-weight: 800;
+  color: #ffd700;
+  min-width: 26px;
 }
 
 #boredomMuteBtn.unmuted {

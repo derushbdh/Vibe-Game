@@ -249,6 +249,7 @@ interface Player {
     chakram: number;
     bladeAngle: number;
     drone: number;
+    regen?: number;
   };
   invuln: number;
 }
@@ -275,6 +276,21 @@ interface Enemy {
   bossTimer?: number;
   dashTime?: number;
   specialTimer?: number;
+  fieldRadius?: number;
+  fieldZapTimer?: number;
+  burstCount?: number;
+  burstTimer?: number;
+  spinAngle?: number;
+}
+
+interface CompanionDrone {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  angle: number;
+  recoil: number;
+  bobPhase: number;
 }
 
 interface Bullet {
@@ -300,6 +316,8 @@ interface EnemyBullet {
   r: number;
   color: string;
   life: number;
+  isExplosive?: boolean;
+  blastRadius?: number;
 }
 
 interface MedKit {
@@ -502,6 +520,14 @@ const SKILLS: Record<string, SkillInfo> = {
     type: 'weapon',
     color: '#00e5ff',
     icon: '🛸',
+  },
+  regen: {
+    name: 'Нано-регенерация',
+    desc: 'Постепенно восстанавливает здоровье корабля (+1.5 HP/сек за уровень)',
+    max: 5,
+    type: 'passive',
+    color: '#10b981',
+    icon: '💚',
   },
 };
 
@@ -795,6 +821,7 @@ let floatTexts: FloatText[] = [];
 let particles: Particle[] = [];
 let lightningArcs: LightningArc[] = [];
 let novaWaves: NovaWave[] = [];
+let companionDrones: CompanionDrone[] = [];
 
 // Игровые параметры сложности и баланса
 const ENEMY_SPEED_SCALING_PER_SEC = 0.0014; // Плавное ускорение врагов (+8.4% за минуту)
@@ -902,7 +929,7 @@ function startGame(): void {
     kills: 0,
     runGold: 0,
     skills: { [cls.startSkill]: 1 },
-    timers: { blaster: 0, lightning: 0, nova: 0, chakram: 0, bladeAngle: 0, drone: 0 },
+    timers: { blaster: 0, lightning: 0, nova: 0, chakram: 0, bladeAngle: 0, drone: 0, regen: 0 },
     invuln: 0,
   };
 
@@ -918,6 +945,7 @@ function startGame(): void {
   particles = [];
   lightningArcs = [];
   novaWaves = [];
+  companionDrones = [];
   elapsed = 0;
   spawnTimer = 1.0;
   nextBossTime = isHardcore ? 35 : 45;
@@ -1021,6 +1049,10 @@ function openLevelUp(): void {
         player.magnetR *= 1.45;
         player.hp = Math.min(player.maxHp, player.hp + 30);
       }
+      if (k === 'regen') {
+        player.hp = Math.min(player.maxHp, player.hp + 12);
+        addFloatText(player.x, player.y - 15, '+12 HP', '#10b981', 16);
+      }
 
       save.telemetry.skillPickCounts[sk.name] = (save.telemetry.skillPickCounts[sk.name] || 0) + 1;
       saveGame();
@@ -1081,6 +1113,11 @@ function spawnEnemy(
         bossTimer: 75,
         specialTimer: 140,
         dashTime: 0,
+        fieldRadius: 112,
+        fieldZapTimer: 25,
+        burstCount: 0,
+        burstTimer: 0,
+        spinAngle: 0,
       });
     } else if (kind === 'singularity') {
       const hp = Math.round((1800 + elapsed * 18) * hcHpMult);
@@ -1341,6 +1378,30 @@ function update(dt: number): void {
   player.x += mx * player.speed * dt;
   player.y += my * player.speed * dt;
 
+  // 1.1 Нано-регенерация здоровья (пассивный навык)
+  const regenLvl = player.skills.regen || 0;
+  if (regenLvl > 0 && player.hp < player.maxHp) {
+    player.timers.regen = (player.timers.regen || 0) + dt;
+    if (player.timers.regen >= 60) {
+      player.timers.regen = 0;
+      const healAmount = Math.min(player.maxHp - player.hp, Math.round(regenLvl * 1.5));
+      if (healAmount > 0) {
+        player.hp = Math.min(player.maxHp, player.hp + healAmount);
+        addFloatText(player.x + (Math.random() - 0.5) * 14, player.y - player.r - 8, `+${healAmount} HP`, '#10b981', 13);
+        for (let p = 0; p < 3; p++) {
+          particles.push({
+            x: player.x + (Math.random() - 0.5) * player.r * 1.2,
+            y: player.y + (Math.random() - 0.5) * player.r * 1.2,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: -1.2 - Math.random() * 0.8,
+            life: 0.4,
+            color: '#10b981',
+          });
+        }
+      }
+    }
+  }
+
   // 2. АВТОМАТИЧЕСКОЕ ОРУЖИЕ
   // 2.1 Авто-бластер
   const blasterLvl = player.skills.blaster || 0;
@@ -1467,27 +1528,91 @@ function update(dt: number): void {
     }
   }
 
-  // 2.6 Боевой дрон-спутник
+  // 2.6 Боевой дрон-спутник (живое плавное поведение напарника)
   const droneLvl = player.skills.drone || 0;
   if (droneLvl > 0) {
+    const desiredCount = droneLvl >= 4 ? 2 : 1;
+    while (companionDrones.length < desiredCount) {
+      const idx = companionDrones.length;
+      companionDrones.push({
+        x: player.x - 30,
+        y: player.y - 30,
+        vx: 0,
+        vy: 0,
+        angle: player.angle,
+        recoil: 0,
+        bobPhase: idx * Math.PI,
+      });
+    }
+    while (companionDrones.length > desiredCount) {
+      companionDrones.pop();
+    }
+
+    for (let d = 0; d < companionDrones.length; d++) {
+      const drone = companionDrones[d];
+      drone.bobPhase += 0.04 * dt;
+
+      // 1. Позиция следования за кораблем:
+      // Дрон держится на фланге позади корабля, словно верный ведомый (wingman)
+      const flankAngle = player.angle + Math.PI + (d === 0 ? -0.85 : 0.85);
+      const followDist = 48 + Math.sin(drone.bobPhase * 1.4) * 8;
+      const hoverX = Math.cos(drone.bobPhase) * 12;
+      const hoverY = Math.sin(drone.bobPhase * 1.2) * 10;
+      const targetX = player.x + Math.cos(flankAngle) * followDist + hoverX;
+      const targetY = player.y + Math.sin(flankAngle) * followDist + hoverY;
+
+      // Плавное пружинное физическое перемещение с мягкой инерцией
+      const toTx = targetX - drone.x;
+      const toTy = targetY - drone.y;
+      drone.vx = drone.vx * 0.82 + toTx * 0.045 * dt;
+      drone.vy = drone.vy * 0.82 + toTy * 0.045 * dt;
+      drone.x += drone.vx * dt;
+      drone.y += drone.vy * dt;
+
+      // 2. Плавный поворот носа дрона:
+      // Целится во врага, если он рядом, или смотрит по направлению полета
+      const target = findNearestEnemy(drone.x, drone.y);
+      let desiredAngle = player.angle;
+      if (target && Math.hypot(target.x - drone.x, target.y - drone.y) < 380) {
+        desiredAngle = Math.atan2(target.y - drone.y, target.x - drone.x);
+      } else if (Math.hypot(drone.vx, drone.vy) > 0.4) {
+        desiredAngle = Math.atan2(drone.vy, drone.vx);
+      }
+
+      let diffAngle = desiredAngle - drone.angle;
+      while (diffAngle < -Math.PI) diffAngle += Math.PI * 2;
+      while (diffAngle > Math.PI) diffAngle -= Math.PI * 2;
+      drone.angle += diffAngle * 0.18 * dt;
+
+      if (drone.recoil > 0) drone.recoil -= 0.12 * dt;
+
+      // Искры из микродвигателя при активном маневрировании
+      if (Math.hypot(drone.vx, drone.vy) > 1.2 && Math.random() < 0.3) {
+        particles.push({
+          x: drone.x - Math.cos(drone.angle) * 8,
+          y: drone.y - Math.sin(drone.angle) * 8,
+          vx: -Math.cos(drone.angle) * 1.5 + (Math.random() - 0.5),
+          vy: -Math.sin(drone.angle) * 1.5 + (Math.random() - 0.5),
+          life: 0.25,
+          color: '#00e5ff',
+        });
+      }
+    }
+
+    // 3. Стрельба дронов
     player.timers.drone -= dt;
     if (player.timers.drone <= 0) {
-      const droneCount = droneLvl >= 4 ? 2 : 1;
-      for (let d = 0; d < droneCount; d++) {
-        const dAngle = elapsed * 2.8 + (d * Math.PI * 2) / droneCount;
-        const dDist = 44;
-        const dX = player.x + Math.cos(dAngle) * dDist;
-        const dY = player.y + Math.sin(dAngle) * dDist;
-        const target = findNearestEnemy(dX, dY);
-        if (target) {
+      for (const drone of companionDrones) {
+        const target = findNearestEnemy(drone.x, drone.y);
+        if (target && Math.hypot(target.x - drone.x, target.y - drone.y) < 550) {
           playSound('blaster');
-          const da = Math.atan2(target.y - dY, target.x - dX);
+          const da = Math.atan2(target.y - drone.y, target.x - drone.x);
           bullets.push({
             type: 'drone',
-            x: dX,
-            y: dY,
-            vx: Math.cos(da) * 11.5,
-            vy: Math.sin(da) * 11.5,
+            x: drone.x + Math.cos(da) * 6,
+            y: drone.y + Math.sin(da) * 6,
+            vx: Math.cos(da) * 12,
+            vy: Math.sin(da) * 12,
             dmg: 11 + droneLvl * 4,
             r: 4.5,
             color: '#00e5ff',
@@ -1495,10 +1620,11 @@ function update(dt: number): void {
             bounces: 0,
             lastHit: null,
           });
-          addParticles(dX, dY, '#00e5ff', 3, 2);
+          drone.recoil = 3.5;
+          addParticles(drone.x + Math.cos(da) * 6, drone.y + Math.sin(da) * 6, '#00e5ff', 3, 2);
         }
       }
-      player.timers.drone = Math.max(15, 33 - droneLvl * 3.5);
+      player.timers.drone = Math.max(16, 34 - droneLvl * 3.5);
     }
   }
 
@@ -1550,12 +1676,34 @@ function update(dt: number): void {
     eb.x += eb.vx * dt;
     eb.y += eb.vy * dt;
     eb.life -= dt;
-    if (eb.life <= 0) {
+
+    const hitPlayer = Math.hypot(eb.x - player.x, eb.y - player.y) < eb.r + player.r;
+    const isExpired = eb.life <= 0;
+
+    // Взрывные снаряды (Оранжевый босс)
+    if (eb.isExplosive && (isExpired || hitPlayer)) {
+      const blastR = eb.blastRadius || 48;
+      novaWaves.push({ x: eb.x, y: eb.y, r: 8, maxR: blastR });
+      addParticles(eb.x, eb.y, '#ff6600', 14, 3.5);
+      playSound('explosion');
+
+      const distP = Math.hypot(player.x - eb.x, player.y - eb.y);
+      if (distP < blastR + player.r && player.invuln <= 0) {
+        const isDead = damagePlayer(eb.dmg);
+        enemyBullets.splice(i, 1);
+        if (isDead) return;
+        continue;
+      }
       enemyBullets.splice(i, 1);
       continue;
     }
 
-    if (Math.hypot(eb.x - player.x, eb.y - player.y) < eb.r + player.r) {
+    if (isExpired) {
+      enemyBullets.splice(i, 1);
+      continue;
+    }
+
+    if (hitPlayer) {
       addParticles(eb.x, eb.y, eb.color, 6, 2.5);
       const isDead = damagePlayer(eb.dmg);
       enemyBullets.splice(i, 1);
@@ -1738,46 +1886,81 @@ function update(dt: number): void {
         }
       } else if (bKind === 'archon') {
         // --- БОСС 2: ШТОРМ-АРХОНТ ТЕСЛЫ ---
-        // 360° Кольцевой залп плазмы + Удар цепной молнией в игрока
+        // Компактное электрическое поле (бьет током внутри) + Вращающийся залп спиральными шлейфами
         moveSpeed = baseSpeed * 0.92;
 
-        e.bossTimer = (e.bossTimer || 75) - dt;
-        if (e.bossTimer <= 0) {
-          const count = isEnraged ? 14 : 10;
-          for (let b = 0; b < count; b++) {
-            const bAngle = (b / count) * Math.PI * 2 + elapsed;
-            enemyBullets.push({
-              x: e.x + Math.cos(bAngle) * (e.r + 6),
-              y: e.y + Math.sin(bAngle) * (e.r + 6),
-              vx: Math.cos(bAngle) * 4.6,
-              vy: Math.sin(bAngle) * 4.6,
-              dmg: Math.round(10 + elapsed * 0.04),
-              r: 6,
-              color: '#ff2255',
-              life: 130,
+        const fieldR = e.fieldRadius || (isEnraged ? 125 : 110);
+        e.fieldRadius = fieldR;
+
+        // 1. Урон и разряды в электрическом поле (когда игрок внутри поля)
+        e.fieldZapTimer = (e.fieldZapTimer || 25) - dt;
+        if (distToPlayer < fieldR + player.r) {
+          if (e.fieldZapTimer <= 0) {
+            lightningArcs.push({
+              points: [{ x: e.x, y: e.y }, { x: player.x, y: player.y }],
+              life: 0.8,
             });
+            playSound('lightning');
+            const isDead = damagePlayer(8);
+            addParticles(player.x, player.y, '#b829ff', 6, 2.5);
+            addFloatText(player.x, player.y - 20, 'ТОК ТЕСЛЫ!', '#b829ff', 15);
+            e.fieldZapTimer = isEnraged ? 18 : 26;
+            if (isDead) return;
           }
-          playSound('nova');
-          addFloatText(e.x, e.y - e.r - 15, 'ШТОРМ-РАЗРЯД!', '#b829ff', 17);
-          e.bossTimer = isEnraged ? 85 : 135;
         }
 
+        // 2. Вращающийся залп шлейфами (Spinning Barrage фиолетовых снарядов)
+        if (e.burstCount && e.burstCount > 0) {
+          e.burstTimer = (e.burstTimer || 0) - dt;
+          if (e.burstTimer <= 0) {
+            e.burstTimer = 5; // шаг между волнами шлейфа
+            e.burstCount--;
+            e.spinAngle = (e.spinAngle || 0) + (isEnraged ? 0.42 : 0.35);
+
+            const streams = isEnraged ? 5 : 4;
+            for (let s = 0; s < streams; s++) {
+              const bAngle = (s / streams) * Math.PI * 2 + e.spinAngle;
+              enemyBullets.push({
+                x: e.x + Math.cos(bAngle) * (e.r + 6),
+                y: e.y + Math.sin(bAngle) * (e.r + 6),
+                vx: Math.cos(bAngle) * 5.0,
+                vy: Math.sin(bAngle) * 5.0,
+                dmg: Math.round(9 + elapsed * 0.035),
+                r: 5.5,
+                color: '#b829ff', // Фиолетовые снаряды под цвет Теслы!
+                life: 135,
+              });
+            }
+            playSound('enemy_shoot');
+          }
+        }
+
+        // Таймер перезарядки серии залпов
+        e.bossTimer = (e.bossTimer || 80) - dt;
+        if (e.bossTimer <= 0) {
+          e.burstCount = isEnraged ? 7 : 5; // 5-7 волн в одном шлейфе
+          e.burstTimer = 0;
+          addFloatText(e.x, e.y - e.r - 15, 'ШТОРМ-СПИРАЛЬ!', '#b829ff', 17);
+          e.bossTimer = isEnraged ? 90 : 130;
+        }
+
+        // 3. Дальняя цепная молния при дистанции вне поля
         e.specialTimer = (e.specialTimer || 140) - dt;
-        if (e.specialTimer <= 0 && distToPlayer < 520) {
+        if (e.specialTimer <= 0 && distToPlayer < 520 && distToPlayer > fieldR) {
           lightningArcs.push({
             points: [{ x: e.x, y: e.y }, { x: player.x, y: player.y }],
             life: 1.2,
           });
           playSound('lightning');
-          const isDead = damagePlayer(15);
+          const isDead = damagePlayer(14);
           addParticles(player.x, player.y, '#b829ff', 8, 3);
           addFloatText(player.x, player.y - 25, 'МОЛНИЯ ТЕСЛЫ!', '#b829ff', 16);
-          e.specialTimer = isEnraged ? 115 : 165;
+          e.specialTimer = isEnraged ? 120 : 170;
           if (isDead) return;
         }
       } else if (bKind === 'singularity') {
         // --- БОСС 3: СИНГУЛЯРНОСТЬ БЕЗДНЫ ---
-        // Гравитационная воронка (засасывает корабль) + Спиральный шквал + Призыв камикадзе
+        // Гравитационная воронка (засасывает корабль) + Взрывные плазменные залпы + Призыв камикадзе
         moveSpeed = baseSpeed * 0.85;
 
         // Гравитационное притяжение игрока к центру черной дыры
@@ -1790,22 +1973,29 @@ function update(dt: number): void {
           }
         }
 
-        // Спиральный непрерывный огонь
-        e.bossTimer = (e.bossTimer || 30) - dt;
+        // Взрывные плазменные снаряды: прицельный залп по игроку (с веером при ярости)
+        e.bossTimer = (e.bossTimer || 45) - dt;
         if (e.bossTimer <= 0) {
-          const spiralAngle = elapsed * 5.2;
-          enemyBullets.push({
-            x: e.x + Math.cos(spiralAngle) * (e.r + 6),
-            y: e.y + Math.sin(spiralAngle) * (e.r + 6),
-            vx: Math.cos(spiralAngle) * 5.4,
-            vy: Math.sin(spiralAngle) * 5.4,
-            dmg: Math.round(9 + elapsed * 0.03),
-            r: 5.5,
-            color: '#ff6600',
-            life: 120,
-          });
-          playSound('enemy_shoot');
-          e.bossTimer = isEnraged ? 10 : 16;
+          const shotCount = isEnraged ? 3 : 1;
+          const spread = 0.32;
+          for (let s = 0; s < shotCount; s++) {
+            const bAngle = shotCount === 1 ? aimAngle : aimAngle - spread / 2 + (s / (shotCount - 1)) * spread;
+            enemyBullets.push({
+              x: e.x + Math.cos(bAngle) * (e.r + 8),
+              y: e.y + Math.sin(bAngle) * (e.r + 8),
+              vx: Math.cos(bAngle) * 5.2,
+              vy: Math.sin(bAngle) * 5.2,
+              dmg: Math.round(15 + elapsed * 0.04),
+              r: 8.5,
+              color: '#ff6600',
+              life: 80, // пролетает и взрывается на дистанции или при попадании!
+              isExplosive: true,
+              blastRadius: 48,
+            });
+          }
+          playSound('nova');
+          addFloatText(e.x, e.y - e.r - 15, 'ВЗРЫВНАЯ ПЛАЗМА!', '#ff6600', 16);
+          e.bossTimer = isEnraged ? 32 : 48;
         }
 
         // Спавн дронов-камикадзе
@@ -2074,17 +2264,75 @@ function draw(): void {
       const bKind = e.bossType || 'dreadnought';
 
       if (bKind === 'archon') {
-        // Электрическое защитное поле Шторм-Архонта
-        ctx.strokeStyle = isEnraged ? '#ff00ff' : 'rgba(184, 41, 255, 0.75)';
+        const fieldR = e.fieldRadius || (isEnraged ? 125 : 110);
+
+        // Электрическое поле Теслы: эффекты молний строго внутри поля, фон полупрозрачный
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, fieldR, 0, Math.PI * 2);
+
+        // 1. Полупрозрачный фон поля (арена видна сквозь него)
+        ctx.fillStyle = isEnraged ? 'rgba(184, 41, 255, 0.12)' : 'rgba(184, 41, 255, 0.07)';
+        ctx.fill();
+
+        // Ограничиваем отрисовку молний строго границей круга (clip)
+        ctx.clip();
+
+        // 2. Внутренние эффекты молний и искр строго внутри поля
+        const boltCount = isEnraged ? 5 : 3;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00ffff';
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 1.4;
+
+        for (let b = 0; b < boltCount; b++) {
+          const boltBaseAngle = ((b / boltCount) * Math.PI * 2) + Math.sin(elapsed * 8 + b) * 0.4;
+          const targetDist = (fieldR * 0.3) + ((b * 37 + Math.floor(elapsed * 15)) % Math.floor(fieldR * 0.65));
+          const tx = e.x + Math.cos(boltBaseAngle) * targetDist;
+          const ty = e.y + Math.sin(boltBaseAngle) * targetDist;
+
+          // Ломаная дуга от центра босса
+          ctx.beginPath();
+          ctx.moveTo(e.x, e.y);
+          const midX = (e.x + tx) / 2 + (Math.sin(elapsed * 25 + b * 5) * 8);
+          const midY = (e.y + ty) / 2 + (Math.cos(elapsed * 25 + b * 5) * 8);
+          ctx.lineTo(midX, midY);
+          ctx.lineTo(tx, ty);
+          ctx.stroke();
+
+          // Микро-искра на кончике молнии
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(tx, ty, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+
+        // 3. Внешняя пульсирующая неоновая граница поля
+        ctx.save();
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = '#b829ff';
+        ctx.strokeStyle = isEnraged ? '#ff00ff' : 'rgba(184, 41, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, fieldR + Math.sin(elapsed * 8) * 2.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Внутреннее защитное кольцо босса
+        ctx.strokeStyle = isEnraged ? '#00ffff' : '#b829ff';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r + 10, 0, Math.PI * 2);
+        ctx.arc(e.x, e.y, e.r + 8, 0, Math.PI * 2);
         ctx.stroke();
 
         ctx.fillStyle = isEnraged ? '#00ffff' : '#ffffff';
         ctx.beginPath();
         ctx.arc(e.x, e.y, 7, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
       } else if (bKind === 'singularity') {
         // Воронка сингулярности с черным центром
         ctx.strokeStyle = isEnraged ? '#ffea00' : 'rgba(255, 102, 0, 0.8)';
@@ -2138,6 +2386,38 @@ function draw(): void {
   for (const eb of enemyBullets) {
     const bSpeed = Math.hypot(eb.vx, eb.vy);
     const bAngle = Math.atan2(eb.vy, eb.vx);
+
+    if (eb.isExplosive) {
+      // Взрывной плазменный шар Сингулярности Бездны
+      const pulse = 1 + Math.sin(elapsed * 12) * 0.18;
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = '#ff6600';
+      ctx.fillStyle = 'rgba(255, 102, 0, 0.25)';
+      ctx.beginPath();
+      ctx.arc(eb.x, eb.y, (eb.r + 4) * pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ff3b00';
+      ctx.beginPath();
+      ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffea00';
+      ctx.beginPath();
+      ctx.arc(eb.x, eb.y, eb.r * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Огненный шлейф
+      const tailLen = Math.max(16, bSpeed * 3.2);
+      ctx.strokeStyle = 'rgba(255, 102, 0, 0.6)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(eb.x, eb.y);
+      ctx.lineTo(eb.x - Math.cos(bAngle) * tailLen, eb.y - Math.sin(bAngle) * tailLen);
+      ctx.stroke();
+      continue;
+    }
+
     const tailLen = Math.max(16, bSpeed * 3.4);
     const tailX = eb.x - Math.cos(bAngle) * tailLen;
     const tailY = eb.y - Math.sin(bAngle) * tailLen;
@@ -2200,38 +2480,52 @@ function draw(): void {
     }
   }
 
-  // Боевой дрон-спутник (навык игрока)
+  // Боевой дрон-спутник (живой напарник на крыле корабля)
   const droneLvl = player.skills.drone || 0;
-  if (droneLvl > 0) {
-    const droneCount = droneLvl >= 4 ? 2 : 1;
-    for (let d = 0; d < droneCount; d++) {
-      const dAngle = elapsed * 2.8 + (d * Math.PI * 2) / droneCount;
-      const dDist = 44 + Math.sin(elapsed * 6 + d) * 3;
-      const dx = player.x + Math.cos(dAngle) * dDist;
-      const dy = player.y + Math.sin(dAngle) * dDist;
-
+  if (droneLvl > 0 && companionDrones.length > 0) {
+    for (const drone of companionDrones) {
       ctx.save();
-      ctx.translate(dx, dy);
-      ctx.rotate(dAngle + Math.PI / 2);
+      const renderX = drone.x - Math.cos(drone.angle) * (drone.recoil || 0);
+      const renderY = drone.y - Math.sin(drone.angle) * (drone.recoil || 0);
+      ctx.translate(renderX, renderY);
+      ctx.rotate(drone.angle + Math.PI / 2);
 
       ctx.shadowBlur = 12;
       ctx.shadowColor = '#00e5ff';
 
+      // Корпус дрона
       ctx.fillStyle = '#0f172a';
       ctx.strokeStyle = '#00e5ff';
       ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.moveTo(0, -9);
-      ctx.lineTo(7, 3);
-      ctx.lineTo(0, 7);
-      ctx.lineTo(-7, 3);
+      ctx.moveTo(0, -10);
+      ctx.lineTo(8, 4);
+      ctx.lineTo(0, 8);
+      ctx.lineTo(-8, 4);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
 
+      // Крылья / стабилизаторы
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-8, 4);
+      ctx.lineTo(-11, 8);
+      ctx.moveTo(8, 4);
+      ctx.lineTo(11, 8);
+      ctx.stroke();
+
+      // Светящееся плазменное ядро
       ctx.fillStyle = '#00e5ff';
       ctx.beginPath();
-      ctx.arc(0, -2, 2.5, 0, Math.PI * 2);
+      ctx.arc(0, -2, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Сопло двигателя
+      ctx.fillStyle = '#00ffff';
+      ctx.beginPath();
+      ctx.arc(0, 7, 1.8, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
@@ -2342,6 +2636,14 @@ if (resumeBtn) resumeBtn.onclick = () => togglePause(false);
 const surrenderBtn = document.getElementById('surrenderBtn');
 if (surrenderBtn) surrenderBtn.onclick = surrenderRun;
 
+const pauseHintBtn = document.getElementById('pauseHintBtn');
+if (pauseHintBtn) {
+  pauseHintBtn.onclick = () => {
+    if (state === 'PLAYING') togglePause(true);
+    else if (state === 'PAUSED') togglePause(false);
+  };
+}
+
 // --- ЛОГИКА "МНЕ СКУЧНО" (ЧИСТКА КОВРА С МГНОВЕННЫМ ПЕРЕКЛЮЧЕНИЕМ И ЗВУКОМ) ---
 const carpetVideos = [
   document.getElementById('carpetVideo0') as HTMLVideoElement,
@@ -2353,11 +2655,32 @@ let isBoredomMuted = true;
 
 const boredomBtn = document.getElementById('boredomBtn')!;
 const boredomModal = document.getElementById('boredomModal')!;
+const boredomSpeedBtn = document.getElementById('boredomSpeedBtn');
 const boredomMuteBtn = document.getElementById('boredomMuteBtn');
 const boredomNextBtn = document.getElementById('boredomNextBtn')!;
 const boredomCloseBtn = document.getElementById('boredomCloseBtn')!;
 const boredomLoader = document.getElementById('boredomLoader');
 const boredomTitle = document.querySelector('.boredom-title') as HTMLElement | null;
+
+const VIDEO_SPEEDS = [1.0, 1.5, 2.0];
+let currentSpeedIdx = 0;
+
+function setPlaybackSpeed(idx: number): void {
+  currentSpeedIdx = idx % VIDEO_SPEEDS.length;
+  const speed = VIDEO_SPEEDS[currentSpeedIdx];
+  if (boredomSpeedBtn) {
+    boredomSpeedBtn.textContent = `${speed}x`;
+  }
+  carpetVideos.forEach((v) => {
+    if (v) v.playbackRate = speed;
+  });
+}
+
+if (boredomSpeedBtn) {
+  boredomSpeedBtn.onclick = () => {
+    setPlaybackSpeed(currentSpeedIdx + 1);
+  };
+}
 
 function setMuteState(muted: boolean): void {
   isBoredomMuted = muted;
@@ -2408,6 +2731,7 @@ function playActiveCarpet(): void {
     if (idx === currentVideoIdx) {
       v.style.display = 'block';
       v.muted = isBoredomMuted;
+      v.playbackRate = VIDEO_SPEEDS[currentSpeedIdx];
       if (!isBoredomMuted) v.volume = 0.75;
       const p = v.play();
       if (p !== undefined) {
