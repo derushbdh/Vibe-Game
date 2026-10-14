@@ -1951,13 +1951,14 @@ function update(dt: number): void {
         // Гравитационная воронка (засасывает корабль) + Взрывные плазменные залпы + Призыв камикадзе
         moveSpeed = baseSpeed * 0.85;
 
-        // Гравитационное притяжение игрока к центру черной дыры
-        if (distToPlayer < 480) {
-          const pull = (1 - distToPlayer / 480) * (isEnraged ? 3.5 : 2.4);
+        // Гравитационное притяжение игрока к центру черной дыры (мягкое притяжение, позволяющее маневрировать)
+        const vortexRadius = 320;
+        if (distToPlayer < vortexRadius && distToPlayer > e.r + player.r) {
+          const pull = (1 - distToPlayer / vortexRadius) * (isEnraged ? 1.35 : 0.9);
           player.x += Math.cos(aimAngle + Math.PI) * pull * dt;
           player.y += Math.sin(aimAngle + Math.PI) * pull * dt;
-          if (Math.random() < 0.25) {
-            novaWaves.push({ x: e.x, y: e.y, r: 8, maxR: 70 });
+          if (Math.random() < 0.15) {
+            novaWaves.push({ x: e.x, y: e.y, r: 8, maxR: 55 });
           }
         }
 
