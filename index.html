@@ -2,14 +2,80 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#111827" />
-    <title>Game Dev Starter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#06070d" />
+    <title>Cyber Survivors</title>
   </head>
   <body>
-    <main id="app">
-      <div id="game"></div>
-    </main>
+    <!-- Полоска опыта -->
+    <div id="xpWrap"><div id="xpFill"></div></div>
+
+    <!-- Верхний интерфейс (HUD) -->
+    <div id="hud">
+      <div class="hud-col">
+        <div class="hud-row">
+          <div class="pill" id="hpEl">HP: 100 / 100</div>
+          <div class="pill" id="lvlEl" style="color: #00ffcc">УР: 1</div>
+        </div>
+        <div class="hud-row" id="skillsBar"></div>
+      </div>
+      <div class="hud-row">
+        <div class="pill" id="killsEl">FRAGS: 0</div>
+        <div class="pill" id="goldEl" style="color: #ffd700"><span class="coin">C</span> 0 CR</div>
+        <div class="pill" id="timeEl">00:00</div>
+      </div>
+    </div>
+
+    <!-- Меню / Ангар -->
+    <div class="modal" id="menuModal">
+      <div class="box">
+        <h1>CYBER SURVIVORS</h1>
+        <div class="sub" id="lastRunBanner">
+          Управление: WASD / Стрелки или веди зажатой мышкой / пальцем по экрану. Оружие атакует само!
+        </div>
+        <div style="font-size: 20px; font-weight: 800; color: #ffd700; margin-bottom: 14px;" id="bankEl">
+          БАНК: <span class="coin">C</span> 0 CR
+        </div>
+
+        <div style="text-align: left; font-weight: 700; margin-bottom: 8px; color: #00ffcc;">
+          1. ВЫБЕРИ КОРПУС ГЕРОЯ:
+        </div>
+        <div class="grid-3" id="classGrid"></div>
+
+        <div style="text-align: left; font-weight: 700; margin-bottom: 8px; color: #b829ff;">
+          2. МЕТА-ПРОКАЧКА В АНГАРЕ (НАВСЕГДА):
+        </div>
+        <div class="grid-3" id="metaGrid"></div>
+
+        <div>
+          <button class="btn-main" id="startBtn">НАЧАТЬ ЗАБЕГ</button>
+          <button class="btn-sec" id="statsBtn">📊 Статистика (для отчета)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Выбор способности при повышении уровня -->
+    <div class="modal" id="levelModal">
+      <div class="box">
+        <h1 style="color: #b829ff">НОВЫЙ УРОВЕНЬ!</h1>
+        <div class="sub">Выбери оружие или модуль улучшения:</div>
+        <div class="grid-3" id="upgradeChoices"></div>
+      </div>
+    </div>
+
+    <!-- Окно телеметрии -->
+    <div class="modal" id="statsModal">
+      <div class="box">
+        <h1>📊 АНАЛИТИКА ИГРОКА</h1>
+        <div class="sub">Собранные метрики для твоего отчета по дисциплине</div>
+        <pre id="statsOutput"></pre>
+        <button class="btn-main" id="copyStatsBtn">Скопировать JSON</button>
+        <button class="btn-sec" id="closeStatsBtn">Закрыть</button>
+      </div>
+    </div>
+
+    <canvas id="c"></canvas>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
