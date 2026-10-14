@@ -34,12 +34,19 @@
       <div class="boredom-header">
         <span class="boredom-title">🧼 ДОФАМИН-ПОТОК</span>
         <div class="boredom-btns">
+          <button id="boredomMuteBtn" title="Вкл / Выкл звук видео (ASMR)">🔇</button>
           <button id="boredomNextBtn" title="Сменить ковер">🔁</button>
           <button id="boredomCloseBtn" title="Свернуть">✕</button>
         </div>
       </div>
       <div class="boredom-video-wrap">
-        <video id="boredomVideo" src="./videos/carpet1.mp4" loop muted playsinline></video>
+        <video id="carpetVideo0" class="carpet-video active" src="./videos/carpet1.mp4" loop muted playsinline preload="auto"></video>
+        <video id="carpetVideo1" class="carpet-video" src="./videos/carpet2.mp4" loop muted playsinline preload="auto" style="display: none;"></video>
+        <video id="carpetVideo2" class="carpet-video" src="./videos/carpet3.mp4" loop muted playsinline preload="auto" style="display: none;"></video>
+        <div id="boredomLoader" class="boredom-loader" style="display: none;">
+          <div class="boredom-spinner"></div>
+          <span>Загрузка ковра...</span>
+        </div>
       </div>
       <div class="boredom-footer">
         <span class="live-dot"></span> Фоновая чистка ковра активна
@@ -82,6 +89,18 @@
           <div class="lvl-sub">ВЫБЕРИ СИСТЕМНЫЙ МОДУЛЬ УЛУЧШЕНИЯ</div>
         </div>
         <div class="grid-3" id="upgradeChoices"></div>
+      </div>
+    </div>
+
+    <!-- Меню паузы (ESC) -->
+    <div class="modal" id="pauseModal" style="display: none;">
+      <div class="box" style="max-width: 440px; text-align: center;">
+        <h1 style="color: #00ffcc; letter-spacing: 2px; margin-bottom: 6px;">⏸ ПАУЗА</h1>
+        <div class="sub">СИСТЕМА НА ОЖИДАНИИ. ВЫ МОЖЕТЕ ПРОДОЛЖИТЬ БОЙ ИЛИ ВЕРНУТЬСЯ В АНГАР</div>
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 18px; flex-wrap: wrap;">
+          <button class="btn-main" id="resumeBtn">ПРОДОЛЖИТЬ (ESC)</button>
+          <button class="btn-hardcore unlocked" id="surrenderBtn" style="background: rgba(30,35,55,0.8); border-color: #64748b; color: #cbd5e1;">СДАТЬСЯ В АНГАР</button>
+        </div>
       </div>
     </div>
 

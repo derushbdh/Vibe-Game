@@ -248,6 +248,7 @@ interface Player {
     nova: number;
     chakram: number;
     bladeAngle: number;
+    drone: number;
   };
   invuln: number;
 }
@@ -277,7 +278,7 @@ interface Enemy {
 }
 
 interface Bullet {
-  type: 'blaster' | 'chakram';
+  type: 'blaster' | 'chakram' | 'drone';
   x: number;
   y: number;
   vx: number;
@@ -493,6 +494,14 @@ const SKILLS: Record<string, SkillInfo> = {
     type: 'passive',
     color: '#a855f7',
     icon: '🧲',
+  },
+  drone: {
+    name: 'Дрон-спутник',
+    desc: 'Боевой автономный дрон летает рядом с кораблем и бегло расстреливает цели',
+    max: 5,
+    type: 'weapon',
+    color: '#00e5ff',
+    icon: '🛸',
   },
 };
 
@@ -768,7 +777,7 @@ function renderMenu(banner: string | null = null): void {
 }
 
 // --- ПЕРЕМЕННЫЕ ИГРОВОГО МИРА ---
-let state: 'MENU' | 'PLAYING' | 'LEVEL_UP' = 'MENU';
+let state: 'MENU' | 'PLAYING' | 'LEVEL_UP' | 'PAUSED' = 'MENU';
 let isHardcore = false;
 let lastTime = performance.now();
 let elapsed = 0;
@@ -797,7 +806,48 @@ let currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
 const keys: Record<string, boolean> = {};
 const joy = { active: false, startX: 0, startY: 0, curX: 0, curY: 0, dx: 0, dy: 0 };
 
-window.addEventListener('keydown', (e) => (keys[e.code] = true));
+function togglePause(paused: boolean): void {
+  const pauseModal = document.getElementById('pauseModal');
+  if (paused && state === 'PLAYING') {
+    state = 'PAUSED';
+    joy.active = false;
+    joy.dx = joy.dy = 0;
+    if (pauseModal) pauseModal.style.display = 'flex';
+  } else if (!paused && state === 'PAUSED') {
+    state = 'PLAYING';
+    lastTime = performance.now();
+    if (pauseModal) pauseModal.style.display = 'none';
+  }
+}
+
+function surrenderRun(): void {
+  const pauseModal = document.getElementById('pauseModal');
+  if (pauseModal) pauseModal.style.display = 'none';
+  state = 'MENU';
+  save.telemetry.bestSurvivalSec = Math.max(save.telemetry.bestSurvivalSec, Math.round(elapsed));
+  save.telemetry.maxLevelReached = Math.max(save.telemetry.maxLevelReached, player.lvl);
+  save.telemetry.totalKills += player.kills;
+  save.telemetry.runsHistory.push({
+    survivalSec: Math.round(elapsed),
+    lvl: player.lvl,
+    kills: player.kills,
+    hero: CLASSES[save.selectedClass].name,
+  });
+  saveGame();
+  renderMenu(`Забег завершен (сдались)! Время: ${Math.round(elapsed)} сек | Уровень: ${player.lvl} | Добыто: +${player.runGold} CR`);
+  document.getElementById('menuModal')!.style.display = 'flex';
+}
+
+window.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (e.code === 'Escape') {
+    if (state === 'PLAYING') {
+      togglePause(true);
+    } else if (state === 'PAUSED') {
+      togglePause(false);
+    }
+  }
+});
 window.addEventListener('keyup', (e) => (keys[e.code] = false));
 
 window.addEventListener('pointerdown', (e) => {
@@ -852,9 +902,12 @@ function startGame(): void {
     kills: 0,
     runGold: 0,
     skills: { [cls.startSkill]: 1 },
-    timers: { blaster: 0, lightning: 0, nova: 0, chakram: 0, bladeAngle: 0 },
+    timers: { blaster: 0, lightning: 0, nova: 0, chakram: 0, bladeAngle: 0, drone: 0 },
     invuln: 0,
   };
+
+  const pauseModal = document.getElementById('pauseModal');
+  if (pauseModal) pauseModal.style.display = 'none';
 
   bullets = [];
   enemyBullets = [];
@@ -1007,7 +1060,7 @@ function spawnEnemy(
   if (type === 'boss') {
     const kind = bossKind || 'dreadnought';
     if (kind === 'archon') {
-      const hp = Math.round((2100 + elapsed * 24) * hcHpMult);
+      const hp = Math.round((1300 + elapsed * 14) * hcHpMult);
       enemies.push({
         type: 'boss',
         bossType: 'archon',
@@ -1030,7 +1083,7 @@ function spawnEnemy(
         dashTime: 0,
       });
     } else if (kind === 'singularity') {
-      const hp = Math.round((3000 + elapsed * 30) * hcHpMult);
+      const hp = Math.round((1800 + elapsed * 18) * hcHpMult);
       enemies.push({
         type: 'boss',
         bossType: 'singularity',
@@ -1053,7 +1106,7 @@ function spawnEnemy(
         dashTime: 0,
       });
     } else {
-      const hp = Math.round((1450 + elapsed * 18) * hcHpMult);
+      const hp = Math.round((850 + elapsed * 10) * hcHpMult);
       enemies.push({
         type: 'boss',
         bossType: 'dreadnought',
@@ -1173,8 +1226,8 @@ function spawnEnemy(
 function damageEnemy(e: Enemy, dmg: number): void {
   let finalDmg = Math.round(dmg * player.dmgMult);
   if (e.type === 'boss') {
-    // Укрепленная броня боссов (-30% входящего урона)
-    finalDmg = Math.max(3, Math.round(finalDmg * 0.7));
+    // Укрепленная броня боссов (-15% входящего урона)
+    finalDmg = Math.max(3, Math.round(finalDmg * 0.85));
   }
   e.hp -= finalDmg;
   addFloatText(e.x, e.y - e.r, `${finalDmg}`, finalDmg > 25 ? '#ffea00' : '#ffffff', finalDmg > 25 ? 16 : 13);
@@ -1411,6 +1464,41 @@ function update(dt: number): void {
         y: player.y + Math.sin(a) * 68,
         r: 11,
       });
+    }
+  }
+
+  // 2.6 Боевой дрон-спутник
+  const droneLvl = player.skills.drone || 0;
+  if (droneLvl > 0) {
+    player.timers.drone -= dt;
+    if (player.timers.drone <= 0) {
+      const droneCount = droneLvl >= 4 ? 2 : 1;
+      for (let d = 0; d < droneCount; d++) {
+        const dAngle = elapsed * 2.8 + (d * Math.PI * 2) / droneCount;
+        const dDist = 44;
+        const dX = player.x + Math.cos(dAngle) * dDist;
+        const dY = player.y + Math.sin(dAngle) * dDist;
+        const target = findNearestEnemy(dX, dY);
+        if (target) {
+          playSound('blaster');
+          const da = Math.atan2(target.y - dY, target.x - dX);
+          bullets.push({
+            type: 'drone',
+            x: dX,
+            y: dY,
+            vx: Math.cos(da) * 11.5,
+            vy: Math.sin(da) * 11.5,
+            dmg: 11 + droneLvl * 4,
+            r: 4.5,
+            color: '#00e5ff',
+            life: 60,
+            bounces: 0,
+            lastHit: null,
+          });
+          addParticles(dX, dY, '#00e5ff', 3, 2);
+        }
+      }
+      player.timers.drone = Math.max(15, 33 - droneLvl * 3.5);
     }
   }
 
@@ -1665,7 +1753,7 @@ function update(dt: number): void {
               vy: Math.sin(bAngle) * 4.6,
               dmg: Math.round(10 + elapsed * 0.04),
               r: 6,
-              color: '#b829ff',
+              color: '#ff2255',
               life: 130,
             });
           }
@@ -1900,17 +1988,28 @@ function draw(): void {
     ctx.stroke();
   }
 
-  // Кристаллы опыта
+  // Кристаллы опыта (мягко пульсирующие кристаллы с четкими гранями)
   for (const g of gems) {
+    const pulse = 1 + Math.sin(elapsed * 4.5 + g.x * 0.05) * 0.12;
+    const r = (g.isBoss ? 11 : 5.5) * pulse;
     ctx.shadowBlur = 10;
     ctx.shadowColor = g.isBoss ? '#ffd700' : '#00ffcc';
-    ctx.fillStyle = g.isBoss ? '#ffd700' : g.xp > 1 ? '#b829ff' : '#00ffcc';
-    const r = g.isBoss ? 10 : 5.5;
+    ctx.fillStyle = g.isBoss ? '#ffd700' : g.xp > 1 ? '#00e5ff' : '#00ffcc';
     ctx.beginPath();
     ctx.moveTo(g.x, g.y - r);
-    ctx.lineTo(g.x + r, g.y);
+    ctx.lineTo(g.x + r * 0.8, g.y);
     ctx.lineTo(g.x, g.y + r);
-    ctx.lineTo(g.x - r, g.y);
+    ctx.lineTo(g.x - r * 0.8, g.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Внутренняя сверкающая грань
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(g.x, g.y - r * 0.45);
+    ctx.lineTo(g.x + r * 0.35, g.y);
+    ctx.lineTo(g.x, g.y + r * 0.45);
+    ctx.lineTo(g.x - r * 0.35, g.y);
     ctx.closePath();
     ctx.fill();
   }
@@ -2035,20 +2134,39 @@ function draw(): void {
     ctx.fill();
   }
 
-  // Снаряды врагов (красная плазма со светящимся ядром)
+  // Снаряды врагов (огненно-красные плазменные иглы со шлейфом опасности и ореолом)
   for (const eb of enemyBullets) {
+    const bSpeed = Math.hypot(eb.vx, eb.vy);
+    const bAngle = Math.atan2(eb.vy, eb.vx);
+    const tailLen = Math.max(16, bSpeed * 3.4);
+    const tailX = eb.x - Math.cos(bAngle) * tailLen;
+    const tailY = eb.y - Math.sin(bAngle) * tailLen;
+
+    ctx.save();
+    // 1. Длинный светящийся шлейф опасности
     ctx.shadowBlur = 14;
     ctx.shadowColor = eb.color;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
-    ctx.fill();
-
     ctx.strokeStyle = eb.color;
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(eb.x, eb.y);
     ctx.stroke();
+
+    // 2. Внешний красный предупреждающий ореол опасности
+    ctx.strokeStyle = '#ff0033';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(eb.x, eb.y, eb.r + 2.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Бело-желтое раскаленное плазменное жало
+    ctx.fillStyle = '#fff6cc';
+    ctx.beginPath();
+    ctx.arc(eb.x, eb.y, eb.r * 0.75, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   // Молнии
@@ -2079,6 +2197,44 @@ function draw(): void {
       ctx.beginPath();
       ctx.arc(bx, by, 9, 0, Math.PI * 2);
       ctx.fill();
+    }
+  }
+
+  // Боевой дрон-спутник (навык игрока)
+  const droneLvl = player.skills.drone || 0;
+  if (droneLvl > 0) {
+    const droneCount = droneLvl >= 4 ? 2 : 1;
+    for (let d = 0; d < droneCount; d++) {
+      const dAngle = elapsed * 2.8 + (d * Math.PI * 2) / droneCount;
+      const dDist = 44 + Math.sin(elapsed * 6 + d) * 3;
+      const dx = player.x + Math.cos(dAngle) * dDist;
+      const dy = player.y + Math.sin(dAngle) * dDist;
+
+      ctx.save();
+      ctx.translate(dx, dy);
+      ctx.rotate(dAngle + Math.PI / 2);
+
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#00e5ff';
+
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(0, -9);
+      ctx.lineTo(7, 3);
+      ctx.lineTo(0, 7);
+      ctx.lineTo(-7, 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#00e5ff';
+      ctx.beginPath();
+      ctx.arc(0, -2, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
     }
   }
 
@@ -2180,32 +2336,109 @@ function loop(now: number): void {
 // Привязка кнопок интерфейса
 document.getElementById('startBtn')!.onclick = startGame;
 
-// --- ЛОГИКА "МНЕ СКУЧНО" (ЧИСТКА КОВРА) ---
-const videoList = ['./videos/carpet1.mp4', './videos/carpet2.mp4', './videos/carpet3.mp4'];
+const resumeBtn = document.getElementById('resumeBtn');
+if (resumeBtn) resumeBtn.onclick = () => togglePause(false);
+
+const surrenderBtn = document.getElementById('surrenderBtn');
+if (surrenderBtn) surrenderBtn.onclick = surrenderRun;
+
+// --- ЛОГИКА "МНЕ СКУЧНО" (ЧИСТКА КОВРА С МГНОВЕННЫМ ПЕРЕКЛЮЧЕНИЕМ И ЗВУКОМ) ---
+const carpetVideos = [
+  document.getElementById('carpetVideo0') as HTMLVideoElement,
+  document.getElementById('carpetVideo1') as HTMLVideoElement,
+  document.getElementById('carpetVideo2') as HTMLVideoElement,
+];
 let currentVideoIdx = 0;
+let isBoredomMuted = true;
 
 const boredomBtn = document.getElementById('boredomBtn')!;
 const boredomModal = document.getElementById('boredomModal')!;
-const boredomVideo = document.getElementById('boredomVideo') as HTMLVideoElement;
+const boredomMuteBtn = document.getElementById('boredomMuteBtn');
 const boredomNextBtn = document.getElementById('boredomNextBtn')!;
 const boredomCloseBtn = document.getElementById('boredomCloseBtn')!;
+const boredomLoader = document.getElementById('boredomLoader');
+const boredomTitle = document.querySelector('.boredom-title') as HTMLElement | null;
+
+function setMuteState(muted: boolean): void {
+  isBoredomMuted = muted;
+  if (boredomMuteBtn) {
+    boredomMuteBtn.textContent = isBoredomMuted ? '🔇' : '🔊';
+    boredomMuteBtn.classList.toggle('unmuted', !isBoredomMuted);
+  }
+  carpetVideos.forEach((v) => {
+    if (!v) return;
+    v.muted = isBoredomMuted;
+    if (!isBoredomMuted) v.volume = 0.75;
+  });
+}
+
+if (boredomMuteBtn) {
+  boredomMuteBtn.onclick = () => {
+    setMuteState(!isBoredomMuted);
+  };
+}
+
+// Гарантируем корректные атрибуты звука и плавную загрузку
+carpetVideos.forEach((v) => {
+  if (!v) return;
+  v.muted = true;
+  v.defaultMuted = true;
+  v.playsInline = true;
+
+  v.addEventListener('waiting', () => {
+    if (boredomLoader) boredomLoader.style.display = 'flex';
+  });
+  v.addEventListener('playing', () => {
+    if (boredomLoader) boredomLoader.style.display = 'none';
+  });
+  v.addEventListener('canplay', () => {
+    if (boredomLoader) boredomLoader.style.display = 'none';
+  });
+});
+
+function updateCarpetUI(): void {
+  if (boredomTitle) {
+    boredomTitle.textContent = `🧼 ДОФАМИН-ПОТОК [${currentVideoIdx + 1}/3]`;
+  }
+}
+
+function playActiveCarpet(): void {
+  carpetVideos.forEach((v, idx) => {
+    if (!v) return;
+    if (idx === currentVideoIdx) {
+      v.style.display = 'block';
+      v.muted = isBoredomMuted;
+      if (!isBoredomMuted) v.volume = 0.75;
+      const p = v.play();
+      if (p !== undefined) {
+        p.catch(() => {});
+      }
+    } else {
+      v.style.display = 'none';
+      v.pause();
+    }
+  });
+  updateCarpetUI();
+}
 
 function switchVideo(): void {
-  currentVideoIdx = (currentVideoIdx + 1) % videoList.length;
-  boredomVideo.src = videoList[currentVideoIdx];
-  boredomVideo.load();
-  boredomVideo.play().catch(() => {});
+  currentVideoIdx = (currentVideoIdx + 1) % carpetVideos.length;
+  const nextVid = carpetVideos[currentVideoIdx];
+  if (nextVid) {
+    nextVid.currentTime = 0;
+  }
+  playActiveCarpet();
 }
 
 function openBoredom(): void {
   boredomModal.style.display = 'block';
   boredomBtn.classList.add('active');
-  boredomVideo.play().catch(() => {});
+  playActiveCarpet();
 }
 
 // При нажатии на кнопку "МНЕ СКУЧНО":
 // Если окно закрыто — открывает.
-// Если окно уже открыто — переключает на следующее видео!
+// Если окно уже открыто — мгновенно переключает на следующее видео!
 boredomBtn.onclick = () => {
   const isVisible = boredomModal.style.display === 'block';
   if (!isVisible) {
@@ -2215,14 +2448,14 @@ boredomBtn.onclick = () => {
   }
 };
 
-// Синяя кнопка в окне переключает на следующее видео
 boredomNextBtn.onclick = switchVideo;
 
-// Закрытие окна ТОЛЬКО по крестику
 boredomCloseBtn.onclick = () => {
   boredomModal.style.display = 'none';
   boredomBtn.classList.remove('active');
-  boredomVideo.pause();
+  carpetVideos.forEach((v) => {
+    if (v) v.pause();
+  });
 };
 
 renderMenu();

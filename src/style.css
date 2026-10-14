@@ -493,7 +493,7 @@ h1 {
   position: fixed;
   right: 16px;
   top: 76px;
-  z-index: 25;
+  z-index: 40;
   background: linear-gradient(135deg, #18203d, #0d1226);
   border: 1.5px solid #00ffcc;
   color: #00ffcc;
@@ -533,7 +533,7 @@ h1 {
   right: 16px;
   bottom: 16px;
   width: 220px;
-  z-index: 35;
+  z-index: 45;
   border-radius: 14px;
   overflow: hidden;
   background: #0d1224;
@@ -580,6 +580,12 @@ h1 {
   color: #06070d;
 }
 
+#boredomMuteBtn.unmuted {
+  background: rgba(0, 255, 204, 0.25);
+  color: #00ffcc;
+  border: 1px solid rgba(0, 255, 204, 0.6);
+}
+
 .boredom-video-wrap {
   width: 100%;
   height: 280px;
@@ -593,6 +599,34 @@ h1 {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.boredom-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background: rgba(6, 7, 13, 0.85);
+  color: #00ffcc;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 5;
+}
+
+.boredom-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(0, 255, 204, 0.2);
+  border-top-color: #00ffcc;
+  border-radius: 50%;
+  animation: spinBoredom 0.7s linear infinite;
+}
+
+@keyframes spinBoredom {
+  to { transform: rotate(360deg); }
 }
 
 .boredom-footer {
