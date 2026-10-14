@@ -30,8 +30,20 @@ interface SkillInfo {
 }
 
 // --- СИНТЕЗАТОР ЗВУКОВ (WEB AUDIO API БЕЗ ВНЕШНИХ ФАЙЛОВ) ---
+type SoundType =
+  | 'levelup'
+  | 'upgrade'
+  | 'blaster'
+  | 'lightning'
+  | 'nova'
+  | 'chakram'
+  | 'enemy_shoot'
+  | 'player_hit'
+  | 'heal'
+  | 'explosion';
+
 let audioCtx: AudioContext | null = null;
-function playSound(type: 'levelup' | 'upgrade'): void {
+function playSound(type: SoundType): void {
   try {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -69,6 +81,112 @@ function playSound(type: 'levelup' | 'upgrade'): void {
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.15);
+    } else if (type === 'blaster') {
+      // Классический аркадный лазерный выстрел
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(620, now);
+      osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } else if (type === 'lightning') {
+      // Высоковольтный треск цепной молнии
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(750, now);
+      osc.frequency.linearRampToValueAtTime(280, now + 0.06);
+      osc.frequency.linearRampToValueAtTime(900, now + 0.11);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } else if (type === 'nova') {
+      // Низкочастотный резонансный импульс сверхновой
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(240, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.28);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.29);
+    } else if (type === 'chakram') {
+      // Звенящий вибрирующий свист рикошет-диска
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(420, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.09);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } else if (type === 'enemy_shoot') {
+      // Чужеродный плазменный плевок врага
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(340, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.09);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } else if (type === 'player_hit') {
+      // Предупреждающий плотный удар по корпусу
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(170, now);
+      osc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } else if (type === 'heal') {
+      // Гармоничный двухнотный перелив исцеления
+      [659.25, 987.77].forEach((freq, idx) => {
+        const osc = audioCtx!.createOscillator();
+        const gain = audioCtx!.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.12, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.18);
+        osc.connect(gain);
+        gain.connect(audioCtx!.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.2);
+      });
+    } else if (type === 'explosion') {
+      // Глубокий рокот детонации камикадзе
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(30, now + 0.22);
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.23);
     }
   } catch {
     // Безопасный fallback, если аудио заблокировано политикой браузера
@@ -135,7 +253,7 @@ interface Player {
 }
 
 interface Enemy {
-  type: 'normal' | 'runner' | 'tank' | 'boss';
+  type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'kamikaze';
   x: number;
   y: number;
   r: number;
@@ -150,6 +268,7 @@ interface Enemy {
   pushX: number;
   pushY: number;
   bladeCd?: number;
+  shootCooldown?: number;
 }
 
 interface Bullet {
@@ -164,6 +283,23 @@ interface Bullet {
   life: number;
   bounces: number;
   lastHit: Enemy | null;
+}
+
+interface EnemyBullet {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  dmg: number;
+  r: number;
+  color: string;
+  life: number;
+}
+
+interface MedKit {
+  x: number;
+  y: number;
+  heal: number;
 }
 
 interface Gem {
@@ -608,12 +744,21 @@ let nextBossTime = 45;
 
 let player!: Player;
 let bullets: Bullet[] = [];
+let enemyBullets: EnemyBullet[] = [];
 let enemies: Enemy[] = [];
 let gems: Gem[] = [];
+let medkits: MedKit[] = [];
 let floatTexts: FloatText[] = [];
 let particles: Particle[] = [];
 let lightningArcs: LightningArc[] = [];
 let novaWaves: NovaWave[] = [];
+
+// Игровые параметры сложности и баланса
+const ENEMY_SPEED_SCALING_PER_SEC = 0.0014; // Плавное ускорение врагов (+8.4% за минуту)
+const MEDKIT_BASE_DROP_CHANCE = 0.02; // Базовый шанс выпадения аптечки (2%)
+const MEDKIT_PITY_INCREMENT = 0.002; // Накопительный шанс за каждого убитого врага (+0.2%)
+const MEDKIT_HEAL_AMOUNT = 8; // Объем лечения от одной аптечки
+let currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
 
 const keys: Record<string, boolean> = {};
 const joy = { active: false, startX: 0, startY: 0, curX: 0, curY: 0, dx: 0, dy: 0 };
@@ -678,8 +823,10 @@ function startGame(): void {
   };
 
   bullets = [];
+  enemyBullets = [];
   enemies = [];
   gems = [];
+  medkits = [];
   floatTexts = [];
   particles = [];
   lightningArcs = [];
@@ -687,6 +834,7 @@ function startGame(): void {
   elapsed = 0;
   spawnTimer = 1.0;
   nextBossTime = 45;
+  currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
   state = 'PLAYING';
   lastTime = performance.now();
 
@@ -806,7 +954,7 @@ function openLevelUp(): void {
   document.getElementById('levelModal')!.style.display = 'flex';
 }
 
-function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' = 'normal'): void {
+function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' | 'shooter' | 'kamikaze' = 'normal'): void {
   const angle = Math.random() * Math.PI * 2;
   const dist = Math.max(W, H) * 0.58 + 60;
   const x = player.x + Math.cos(angle) * dist;
@@ -845,6 +993,43 @@ function spawnEnemy(type: 'normal' | 'runner' | 'tank' | 'boss' = 'normal'): voi
       sides: 5,
       xp: 3,
       gold: 3,
+      pushX: 0,
+      pushY: 0,
+    });
+  } else if (type === 'shooter') {
+    const hp = 16 + elapsed * 0.45;
+    enemies.push({
+      type: 'shooter',
+      x,
+      y,
+      r: 15,
+      hp,
+      maxHp: hp,
+      speed: 1.15,
+      dmg: 8,
+      color: '#ff3366',
+      sides: 8,
+      xp: 2,
+      gold: 2,
+      pushX: 0,
+      pushY: 0,
+      shootCooldown: 40 + Math.random() * 50,
+    });
+  } else if (type === 'kamikaze') {
+    const hp = 8 + elapsed * 0.25;
+    enemies.push({
+      type: 'kamikaze',
+      x,
+      y,
+      r: 11,
+      hp,
+      maxHp: hp,
+      speed: 2.35,
+      dmg: 14,
+      color: '#ff3b00',
+      sides: 3,
+      xp: 2,
+      gold: 2,
       pushX: 0,
       pushY: 0,
     });
@@ -891,6 +1076,34 @@ function damageEnemy(e: Enemy, dmg: number): void {
   const finalDmg = Math.round(dmg * player.dmgMult);
   e.hp -= finalDmg;
   addFloatText(e.x, e.y - e.r, `${finalDmg}`, finalDmg > 25 ? '#ffea00' : '#ffffff', finalDmg > 25 ? 16 : 13);
+}
+
+function damagePlayer(dmg: number): boolean {
+  if (player.invuln > 0) return false;
+  player.hp -= dmg;
+  player.invuln = 35;
+  playSound('player_hit');
+  addFloatText(player.x, player.y - 20, `-${dmg} HP`, '#ff0055', 16);
+
+  if (player.hp <= 0) {
+    state = 'MENU';
+    save.telemetry.bestSurvivalSec = Math.max(save.telemetry.bestSurvivalSec, Math.round(elapsed));
+    save.telemetry.maxLevelReached = Math.max(save.telemetry.maxLevelReached, player.lvl);
+    save.telemetry.totalKills += player.kills;
+    save.telemetry.runsHistory.push({
+      survivalSec: Math.round(elapsed),
+      lvl: player.lvl,
+      kills: player.kills,
+      hero: CLASSES[save.selectedClass].name,
+    });
+    saveGame();
+    renderMenu(
+      `Забег завершен! Время: ${Math.round(elapsed)} сек | Уровень: ${player.lvl} | Добыто: +${player.runGold} CR`
+    );
+    document.getElementById('menuModal')!.style.display = 'flex';
+    return true;
+  }
+  return false;
 }
 
 function findNearestEnemy(fromX: number, fromY: number, excludeSet: Set<Enemy> | null = null): Enemy | null {
@@ -980,6 +1193,7 @@ function update(dt: number): void {
     if (player.timers.blaster <= 0) {
       const target = findNearestEnemy(player.x, player.y);
       if (target) {
+        playSound('blaster');
         const baseA = Math.atan2(target.y - player.y, target.x - player.x);
         const count = blasterLvl;
         for (let i = 0; i < count; i++) {
@@ -1026,6 +1240,7 @@ function update(dt: number): void {
       }
 
       if (points.length > 1) {
+        playSound('lightning');
         lightningArcs.push({ points, life: 1 });
         player.timers.lightning = Math.max(38, 75 - lightLvl * 7);
       }
@@ -1037,6 +1252,7 @@ function update(dt: number): void {
   if (novaLvl > 0) {
     player.timers.nova -= dt;
     if (player.timers.nova <= 0) {
+      playSound('nova');
       const maxR = 135 + novaLvl * 28;
       novaWaves.push({ x: player.x, y: player.y, r: 10, maxR });
       for (const e of enemies) {
@@ -1059,6 +1275,7 @@ function update(dt: number): void {
     if (player.timers.chakram <= 0) {
       const t = findNearestEnemy(player.x, player.y);
       if (t) {
+        playSound('chakram');
         const a = Math.atan2(t.y - player.y, t.x - player.x);
         bullets.push({
           type: 'chakram',
@@ -1094,7 +1311,7 @@ function update(dt: number): void {
     }
   }
 
-  // 3. СНАРЯДЫ
+  // 3. СНАРЯДЫ ИГРОКА
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     b.x += b.vx * dt;
@@ -1136,6 +1353,25 @@ function update(dt: number): void {
     }
   }
 
+  // 3.1 СНАРЯДЫ ВРАГОВ
+  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+    const eb = enemyBullets[i];
+    eb.x += eb.vx * dt;
+    eb.y += eb.vy * dt;
+    eb.life -= dt;
+    if (eb.life <= 0) {
+      enemyBullets.splice(i, 1);
+      continue;
+    }
+
+    if (Math.hypot(eb.x - player.x, eb.y - player.y) < eb.r + player.r) {
+      addParticles(eb.x, eb.y, eb.color, 6, 2.5);
+      const isDead = damagePlayer(eb.dmg);
+      enemyBullets.splice(i, 1);
+      if (isDead) return;
+    }
+  }
+
   // 4. СПАВН И ПОВЕДЕНИЕ ВРАГОВ
   if (elapsed >= nextBossTime) {
     nextBossTime += 45;
@@ -1143,16 +1379,24 @@ function update(dt: number): void {
     addFloatText(player.x, player.y - 50, 'ВНИМАНИЕ: БОСС НА АРЕНЕ!', '#ff0055', 20);
   }
 
-  const maxEnemies = Math.min(48, 8 + Math.floor(elapsed * 0.45));
+  const maxEnemies = Math.min(50, 8 + Math.floor(elapsed * 0.45));
   spawnTimer -= dt / 60;
   if (spawnTimer <= 0) {
     if (enemies.length < maxEnemies) {
       const r = Math.random();
-      if (elapsed > 30 && r < 0.22) spawnEnemy('tank');
-      else if (elapsed > 15 && r < 0.5) spawnEnemy('runner');
-      else spawnEnemy('normal');
+      if (elapsed > 40 && r < 0.16) {
+        spawnEnemy('tank');
+      } else if (elapsed > 25 && r < 0.38) {
+        spawnEnemy('shooter');
+      } else if (elapsed > 18 && r < 0.58) {
+        spawnEnemy('kamikaze');
+      } else if (elapsed > 8 && r < 0.8) {
+        spawnEnemy('runner');
+      } else {
+        spawnEnemy('normal');
+      }
     }
-    spawnTimer = Math.max(0.28, 1.15 - elapsed * 0.008);
+    spawnTimer = Math.max(0.25, 1.15 - elapsed * 0.008);
   }
 
   for (let i = enemies.length - 1; i >= 0; i--) {
@@ -1183,49 +1427,109 @@ function update(dt: number): void {
     }
 
     if (e.hp <= 0) {
-      addParticles(e.x, e.y, e.color, e.type === 'boss' ? 35 : 10, 4);
+      if (e.type === 'kamikaze') {
+        // Детонация камикадзе: мощный урон по области (AoE взрыв)
+        const blastR = 72;
+        playSound('explosion');
+        addParticles(e.x, e.y, '#ff3b00', 25, 4.5);
+        addParticles(e.x, e.y, '#ffea00', 15, 3.5);
+        novaWaves.push({ x: e.x, y: e.y, r: 8, maxR: blastR });
+
+        // Урон игроку, если он в радиусе взрыва
+        const distP = Math.hypot(player.x - e.x, player.y - e.y);
+        if (distP < blastR + player.r && player.invuln <= 0) {
+          if (damagePlayer(14)) return;
+        }
+
+        // Цепной взрыв по окружающим врагам
+        for (const other of enemies) {
+          if (other === e) continue;
+          const distO = Math.hypot(other.x - e.x, other.y - e.y);
+          if (distO < blastR + other.r) {
+            damageEnemy(other, 24);
+            const sa = Math.atan2(other.y - e.y, other.x - e.x);
+            other.pushX += Math.cos(sa) * 7;
+            other.pushY += Math.sin(sa) * 7;
+          }
+        }
+      } else {
+        addParticles(e.x, e.y, e.color, e.type === 'boss' ? 35 : 10, 4);
+      }
+
       player.kills++;
       player.runGold += e.gold;
       save.gold += e.gold;
       gems.push({ x: e.x, y: e.y, xp: e.xp, isBoss: e.type === 'boss' });
+
+      // Накапливающийся шанс выпадения аптечки (pity-timer)
+      if (Math.random() < currentMedkitDropChance) {
+        medkits.push({ x: e.x, y: e.y, heal: MEDKIT_HEAL_AMOUNT });
+        currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
+      } else {
+        currentMedkitDropChance += MEDKIT_PITY_INCREMENT;
+      }
+
       enemies.splice(i, 1);
       continue;
     }
 
-    const a = Math.atan2(player.y - e.y, player.x - e.x);
-    e.x += (Math.cos(a) * e.speed + e.pushX) * dt;
-    e.y += (Math.sin(a) * e.speed + e.pushY) * dt;
+    // Плавное постепенное ускорение врагов со временем забега
+    const effectiveSpeed = e.speed * (1 + elapsed * ENEMY_SPEED_SCALING_PER_SEC);
+    const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+    const aimAngle = Math.atan2(player.y - e.y, player.x - e.x);
+
+    let moveAngle = aimAngle;
+    let moveSpeed = effectiveSpeed;
+
+    if (e.type === 'shooter') {
+      // Стрелок держит боевую дистанцию (200-330px)
+      if (distToPlayer < 200) {
+        moveAngle = aimAngle + Math.PI; // отступает
+        moveSpeed = effectiveSpeed * 0.85;
+      } else if (distToPlayer > 330) {
+        moveAngle = aimAngle; // приближается
+        moveSpeed = effectiveSpeed;
+      } else {
+        moveAngle = aimAngle + Math.PI / 2; // стрейфит
+        moveSpeed = effectiveSpeed * 0.55;
+      }
+
+      // Стрельба по игроку
+      if (e.shootCooldown !== undefined) {
+        e.shootCooldown -= dt;
+        if (e.shootCooldown <= 0 && distToPlayer < 650) {
+          enemyBullets.push({
+            x: e.x + Math.cos(aimAngle) * (e.r + 5),
+            y: e.y + Math.sin(aimAngle) * (e.r + 5),
+            vx: Math.cos(aimAngle) * 5.8,
+            vy: Math.sin(aimAngle) * 5.8,
+            dmg: Math.round(8 + elapsed * 0.03),
+            r: 5,
+            color: '#ff3366',
+            life: 110,
+          });
+          playSound('enemy_shoot');
+          e.shootCooldown = 110 + Math.random() * 40;
+        }
+      }
+    }
+
+    e.x += (Math.cos(moveAngle) * moveSpeed + e.pushX) * dt;
+    e.y += (Math.sin(moveAngle) * moveSpeed + e.pushY) * dt;
     e.pushX *= Math.pow(0.85, dt);
     e.pushY *= Math.pow(0.85, dt);
 
     // Контакт с игроком
-    if (Math.hypot(e.x - player.x, e.y - player.y) < e.r + player.r && player.invuln <= 0) {
-      player.hp -= e.dmg;
-      player.invuln = 35;
-      addFloatText(player.x, player.y - 20, `-${e.dmg} HP`, '#ff0055', 16);
-
-      if (player.hp <= 0) {
-        state = 'MENU';
-        save.telemetry.bestSurvivalSec = Math.max(save.telemetry.bestSurvivalSec, Math.round(elapsed));
-        save.telemetry.maxLevelReached = Math.max(save.telemetry.maxLevelReached, player.lvl);
-        save.telemetry.totalKills += player.kills;
-        save.telemetry.runsHistory.push({
-          survivalSec: Math.round(elapsed),
-          lvl: player.lvl,
-          kills: player.kills,
-          hero: CLASSES[save.selectedClass].name,
-        });
-        saveGame();
-        renderMenu(
-          `Забег завершен! Время: ${Math.round(elapsed)} сек | Уровень: ${player.lvl} | Добыто: +${player.runGold} CR`
-        );
-        document.getElementById('menuModal')!.style.display = 'flex';
-        return;
+    if (distToPlayer < e.r + player.r) {
+      if (e.type === 'kamikaze') {
+        e.hp = 0; // Врезается в игрока и взрывается
+      } else if (player.invuln <= 0) {
+        if (damagePlayer(e.dmg)) return;
       }
     }
   }
 
-  // 5. КРИСТАЛЛЫ ОПЫТА И МАГНИТ
+  // 5. КРИСТАЛЛЫ ОПЫТА И АПТЕЧКИ
   for (let i = gems.length - 1; i >= 0; i--) {
     const g = gems[i];
     const d = Math.hypot(player.x - g.x, player.y - g.y);
@@ -1249,6 +1553,23 @@ function update(dt: number): void {
         openLevelUp();
         return;
       }
+    }
+  }
+
+  for (let i = medkits.length - 1; i >= 0; i--) {
+    const mk = medkits[i];
+    const d = Math.hypot(player.x - mk.x, player.y - mk.y);
+    if (d < player.magnetR) {
+      const pull = (1 - d / player.magnetR) * 8 + 3;
+      mk.x += ((player.x - mk.x) / d) * pull * dt;
+      mk.y += ((player.y - mk.y) / d) * pull * dt;
+    }
+    if (d < player.r + 10) {
+      player.hp = Math.min(player.maxHp, player.hp + mk.heal);
+      addFloatText(player.x, player.y - 25, `+${mk.heal} HP`, '#10b981', 16);
+      addParticles(mk.x, mk.y, '#10b981', 8, 2.5);
+      playSound('heal');
+      medkits.splice(i, 1);
     }
   }
 
@@ -1327,6 +1648,23 @@ function draw(): void {
     ctx.fill();
   }
 
+  // Аптечки (нано-ремонт с неоновым зеленым крестом)
+  for (const mk of medkits) {
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = '#10b981';
+    ctx.beginPath();
+    ctx.arc(mk.x, mk.y, 9, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.28)';
+    ctx.fill();
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(mk.x - 5, mk.y - 1.5, 10, 3);
+    ctx.fillRect(mk.x - 1.5, mk.y - 5, 3, 10);
+  }
+
   // Враги
   for (const e of enemies) {
     ctx.shadowBlur = 14;
@@ -1344,6 +1682,26 @@ function draw(): void {
     ctx.closePath();
     ctx.stroke();
 
+    // Орудийный ствол стрелка
+    if (e.type === 'shooter') {
+      const aim = Math.atan2(player.y - e.y, player.x - e.x);
+      ctx.strokeStyle = '#ff3366';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(e.x + Math.cos(aim) * (e.r + 7), e.y + Math.sin(aim) * (e.r + 7));
+      ctx.stroke();
+    }
+
+    // Пульсирующее ядро камикадзе
+    if (e.type === 'kamikaze') {
+      const pulse = 0.5 + Math.sin(elapsed * 14) * 0.5;
+      ctx.fillStyle = pulse > 0.5 ? '#ffea00' : '#ff3b00';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     if (e.hp < e.maxHp || e.type === 'boss') {
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(e.x - e.r, e.y - e.r - 10, e.r * 2, 4);
@@ -1352,7 +1710,7 @@ function draw(): void {
     }
   }
 
-  // Снаряды
+  // Снаряды игрока
   for (const b of bullets) {
     ctx.shadowBlur = 12;
     ctx.shadowColor = b.color;
@@ -1360,6 +1718,22 @@ function draw(): void {
     ctx.beginPath();
     ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // Снаряды врагов (красная плазма со светящимся ядром)
+  for (const eb of enemyBullets) {
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = eb.color;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = eb.color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   // Молнии
