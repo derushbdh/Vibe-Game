@@ -1212,7 +1212,7 @@ function spawnEnemy(
       r: 11,
       hp,
       maxHp: hp,
-      speed: 2.35 * hcSpeedMult,
+      speed: 3.35 * hcSpeedMult,
       dmg: 14,
       color: '#ff3b00',
       sides: 3,
@@ -2002,7 +2002,7 @@ function update(dt: number): void {
               r: 11,
               hp: 6,
               maxHp: 6,
-              speed: 2.4,
+              speed: 3.25,
               dmg: 12,
               color: '#ff3b00',
               sides: 3,
@@ -2044,6 +2044,21 @@ function update(dt: number): void {
           });
           playSound('enemy_shoot');
           e.shootCooldown = 110 + Math.random() * 40;
+        }
+      }
+    } else if (e.type === 'kamikaze') {
+      // Турбо-ускорение дрона-камикадзе при сближении с игроком
+      if (distToPlayer < 220) {
+        moveSpeed = effectiveSpeed * 1.25;
+        if (Math.random() < 0.35) {
+          particles.push({
+            x: e.x - Math.cos(aimAngle) * (e.r + 3),
+            y: e.y - Math.sin(aimAngle) * (e.r + 3),
+            vx: -Math.cos(aimAngle) * 2 + (Math.random() - 0.5),
+            vy: -Math.sin(aimAngle) * 2 + (Math.random() - 0.5),
+            life: 0.25,
+            color: Math.random() < 0.5 ? '#ffea00' : '#ff3b00',
+          });
         }
       }
     }
@@ -2710,7 +2725,7 @@ carpetVideos.forEach((v) => {
 
 function updateCarpetUI(): void {
   if (boredomTitle) {
-    boredomTitle.textContent = `🧼 ДОФАМИН-ПОТОК [${currentVideoIdx + 1}/3]`;
+    boredomTitle.textContent = `🧼 ДОФАМИН [${currentVideoIdx + 1}/3]`;
   }
 }
 
