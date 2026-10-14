@@ -2,6 +2,7 @@ import './style.css';
 
 // --- ИНТЕРФЕЙСЫ И ТИПЫ ДЛЯ TYPESCRIPT STRICT ---
 interface HeroClass {
+  id: 'guardian' | 'phantom' | 'technomancer';
   name: string;
   desc: string;
   price: number;
@@ -108,6 +109,9 @@ interface Player {
   x: number;
   y: number;
   r: number;
+  angle: number;
+  skinId: 'guardian' | 'phantom' | 'technomancer';
+  isMoving: boolean;
   color: string;
   hp: number;
   maxHp: number;
@@ -242,11 +246,12 @@ function saveGame(): void {
   localStorage.setItem('cyber_survivors_save', JSON.stringify(save));
 }
 
-// --- КЛАССЫ ГЕРОЕВ ---
+// --- КЛАССЫ ГЕРОЕВ СО СКИНОМ ---
 const CLASSES: HeroClass[] = [
   {
+    id: 'guardian',
     name: 'Страж',
-    desc: 'Сбалансированный боец. Старт: Импульсный авто-бластер',
+    desc: 'Тяжелый перехватчик с мощной броней. Старт: Авто-бластер',
     price: 0,
     hp: 100,
     speed: 3.1,
@@ -254,8 +259,9 @@ const CLASSES: HeroClass[] = [
     color: '#00ffcc',
   },
   {
+    id: 'phantom',
     name: 'Фантом',
-    desc: 'Быстрый ассасин. Старт: Орбитальные кибер-клинки',
+    desc: 'Скоростной стреловидный стелс-дрон. Старт: Кибер-клинки',
     price: 150,
     hp: 85,
     speed: 3.6,
@@ -263,8 +269,9 @@ const CLASSES: HeroClass[] = [
     color: '#ff2a85',
   },
   {
+    id: 'technomancer',
     name: 'Техномант',
-    desc: 'Повелитель молний. Старт: Цепная молния Теслы',
+    desc: 'Сингулярный тесла-крейсер. Старт: Цепная молния Теслы',
     price: 320,
     hp: 90,
     speed: 3.2,
@@ -288,7 +295,7 @@ const SKILLS: Record<string, SkillInfo> = {
     max: 5,
     type: 'weapon',
     color: '#00ffcc',
-    icon: '⯈',
+    icon: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="6"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>',
   },
   blades: {
     name: 'Кибер-клинки',
@@ -296,7 +303,7 @@ const SKILLS: Record<string, SkillInfo> = {
     max: 5,
     type: 'weapon',
     color: '#ff2a85',
-    icon: '✦',
+    icon: '⚔',
   },
   lightning: {
     name: 'Цепная молния',
@@ -348,6 +355,173 @@ const SKILLS: Record<string, SkillInfo> = {
   },
 };
 
+// --- ОТРИСОВКА СКИНОВ КОСМИЧЕСКИХ ДРОНОВ ---
+function drawShip(
+  c: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  angle: number,
+  skinId: 'guardian' | 'phantom' | 'technomancer',
+  color: string,
+  engineThrust = false
+): void {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+
+  if (skinId === 'guardian') {
+    // Двигатели (двойное сопло)
+    if (engineThrust) {
+      c.fillStyle = '#00ffcc';
+      c.shadowColor = '#00ffcc';
+      c.shadowBlur = 10;
+      c.beginPath();
+      c.moveTo(-r, -5);
+      c.lineTo(-r - 9 - Math.random() * 5, -5);
+      c.lineTo(-r + 1, -2);
+      c.moveTo(-r, 2);
+      c.lineTo(-r - 9 - Math.random() * 5, 5);
+      c.lineTo(-r + 1, 5);
+      c.fill();
+    }
+
+    // Корпус тяжелого истребителя
+    c.fillStyle = '#10162a';
+    c.strokeStyle = color;
+    c.lineWidth = 2.4;
+    c.shadowColor = color;
+    c.shadowBlur = 14;
+
+    c.beginPath();
+    c.moveTo(r + 5, 0); // нос
+    c.lineTo(r - 3, -7);
+    c.lineTo(-3, -17); // левое крыло
+    c.lineTo(-3, -12);
+    c.lineTo(-r, -9); // корма лево
+    c.lineTo(-r + 4, 0); // корма вырез
+    c.lineTo(-r, 9); // корма право
+    c.lineTo(-3, 12);
+    c.lineTo(-3, 17); // правое крыло
+    c.lineTo(r - 3, 7);
+    c.closePath();
+    c.fill();
+    c.stroke();
+
+    // Бластерные пушки на крыльях
+    c.fillStyle = color;
+    c.fillRect(0, -16, 7, 2.5);
+    c.fillRect(0, 13.5, 7, 2.5);
+
+    // Кабина пилота
+    c.fillStyle = '#ffffff';
+    c.beginPath();
+    c.ellipse(1, 0, 5, 3, 0, 0, Math.PI * 2);
+    c.fill();
+  } else if (skinId === 'phantom') {
+    // Двигатели (розовое сопло)
+    if (engineThrust) {
+      c.fillStyle = '#ff2a85';
+      c.shadowColor = '#ff2a85';
+      c.shadowBlur = 12;
+      c.beginPath();
+      c.moveTo(-r, 0);
+      c.lineTo(-r - 12 - Math.random() * 6, 0);
+      c.lineTo(-r + 3, 3);
+      c.lineTo(-r + 3, -3);
+      c.closePath();
+      c.fill();
+    }
+
+    // Острый стелс-перехватчик (форма Кинжал / Наконечник)
+    c.fillStyle = '#180f26';
+    c.strokeStyle = color;
+    c.lineWidth = 2.2;
+    c.shadowColor = color;
+    c.shadowBlur = 16;
+
+    c.beginPath();
+    c.moveTo(r + 8, 0); // длинный острый нос
+    c.lineTo(2, -6);
+    c.lineTo(-r + 2, -18); // стреловидное левое крыло
+    c.lineTo(-5, -3);
+    c.lineTo(-r, 0); // хвост
+    c.lineTo(-5, 3);
+    c.lineTo(-r + 2, 18); // стреловидное правое крыло
+    c.lineTo(2, 6);
+    c.closePath();
+    c.fill();
+    c.stroke();
+
+    // Неоновые линии лезвий
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 1.4;
+    c.beginPath();
+    c.moveTo(r + 4, 0);
+    c.lineTo(-3, 0);
+    c.stroke();
+
+    // Ядро
+    c.fillStyle = color;
+    c.beginPath();
+    c.arc(-1, 0, 3, 0, Math.PI * 2);
+    c.fill();
+  } else {
+    // technomancer (Тесла-крейсер)
+    if (engineThrust) {
+      c.strokeStyle = '#b829ff';
+      c.shadowColor = '#00ffcc';
+      c.shadowBlur = 8;
+      c.lineWidth = 1.8;
+      c.beginPath();
+      c.arc(-r - 5, 0, 5 + Math.random() * 3, 0, Math.PI * 2);
+      c.stroke();
+    }
+
+    c.fillStyle = '#120d28';
+    c.strokeStyle = color;
+    c.lineWidth = 2.4;
+    c.shadowColor = color;
+    c.shadowBlur = 16;
+
+    // Ромб-монолит
+    c.beginPath();
+    c.moveTo(r + 6, 0); // нос
+    c.lineTo(0, -11); // левый угол
+    c.lineTo(-r, 0); // хвост
+    c.lineTo(0, 11); // правый угол
+    c.closePath();
+    c.fill();
+    c.stroke();
+
+    // Парящие тесла-пилоны
+    c.fillStyle = '#00ffcc';
+    c.shadowColor = '#00ffcc';
+    c.beginPath();
+    c.arc(2, -15, 3.5, 0, Math.PI * 2);
+    c.arc(2, 15, 3.5, 0, Math.PI * 2);
+    c.fill();
+
+    // Дуги энергии
+    c.strokeStyle = 'rgba(0, 255, 204, 0.7)';
+    c.lineWidth = 1;
+    c.beginPath();
+    c.moveTo(0, -7);
+    c.lineTo(2, -15);
+    c.moveTo(0, 7);
+    c.lineTo(2, 15);
+    c.stroke();
+
+    // Ядро сингулярности
+    c.fillStyle = '#ffffff';
+    c.beginPath();
+    c.arc(1, 0, 4, 0, Math.PI * 2);
+    c.fill();
+  }
+
+  c.restore();
+}
+
 // --- МЕНЮ И ИНТЕРФЕЙС АНГАРА ---
 function renderMenu(banner: string | null = null): void {
   const lastRunBanner = document.getElementById('lastRunBanner')!;
@@ -366,6 +540,9 @@ function renderMenu(banner: string | null = null): void {
     d.innerHTML = `
       <div>
         <h3 style="color:${c.color}">${c.name}</h3>
+        <div class="ship-preview-box">
+          <canvas id="preview_${c.id}" width="90" height="55"></canvas>
+        </div>
         <p>${c.desc}</p>
       </div>
       <div class="cost">${unlocked ? (sel ? '✓ ВЫБРАН' : 'ВЫБРАТЬ') : `<span>КУПИТЬ:</span> <span class="coin">C</span> <span>${c.price} CR</span>`}</div>
@@ -384,6 +561,15 @@ function renderMenu(banner: string | null = null): void {
       }
     };
     cGrid.appendChild(d);
+
+    // Отрисовка превью скина корабля
+    const previewCanvas = document.getElementById(`preview_${c.id}`) as HTMLCanvasElement;
+    if (previewCanvas) {
+      const pCtx = previewCanvas.getContext('2d');
+      if (pCtx) {
+        drawShip(pCtx, 45, 27, 13, 0, c.id, c.color, true);
+      }
+    }
   });
 
   const mGrid = document.getElementById('metaGrid')!;
@@ -472,6 +658,9 @@ function startGame(): void {
     x: 0,
     y: 0,
     r: 16,
+    angle: 0,
+    skinId: cls.id,
+    isMoving: false,
     color: cls.color,
     hp: maxHp,
     maxHp,
@@ -752,6 +941,32 @@ function update(dt: number): void {
   } else if (joy.active) {
     mx = joy.dx;
     my = joy.dy;
+  }
+
+  const isMoving = mx !== 0 || my !== 0;
+  player.isMoving = isMoving;
+
+  // Плавный поворот корабля по направлению движения
+  if (isMoving) {
+    const targetAngle = Math.atan2(my, mx);
+    let diff = targetAngle - player.angle;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    player.angle += diff * 0.22;
+
+    // Реактивные искры из двигателей
+    if (Math.random() < 0.45) {
+      const tailX = player.x - Math.cos(player.angle) * (player.r + 2);
+      const tailY = player.y - Math.sin(player.angle) * (player.r + 2);
+      particles.push({
+        x: tailX,
+        y: tailY,
+        vx: -Math.cos(player.angle) * 2.5 + (Math.random() - 0.5),
+        vy: -Math.sin(player.angle) * 2.5 + (Math.random() - 0.5),
+        life: 0.4,
+        color: player.color,
+      });
+    }
   }
 
   player.x += mx * player.speed * dt;
@@ -1178,17 +1393,9 @@ function draw(): void {
     }
   }
 
-  // Игрок
+  // Игрок (космический корабль / кибер-дрон со скином)
   if (Math.floor(player.invuln) % 4 < 3) {
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = player.color;
-    ctx.fillStyle = player.color;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
+    drawShip(ctx, player.x, player.y, player.r, player.angle, player.skinId, player.color, player.isMoving);
   }
 
   // Частицы и текст урона
@@ -1238,7 +1445,7 @@ function loop(now: number): void {
 document.getElementById('startBtn')!.onclick = startGame;
 
 // --- ЛОГИКА "МНЕ СКУЧНО" (ЧИСТКА КОВРА) ---
-const videoList = ['./videos/carpet1.mp4', './videos/carpet2.mp4'];
+const videoList = ['./videos/carpet1.mp4', './videos/carpet2.mp4', './videos/carpet3.mp4'];
 let currentVideoIdx = 0;
 
 const boredomBtn = document.getElementById('boredomBtn')!;
@@ -1247,30 +1454,39 @@ const boredomVideo = document.getElementById('boredomVideo') as HTMLVideoElement
 const boredomNextBtn = document.getElementById('boredomNextBtn')!;
 const boredomCloseBtn = document.getElementById('boredomCloseBtn')!;
 
-function toggleBoredom(): void {
-  const isVisible = boredomModal.style.display === 'block';
-  if (isVisible) {
-    boredomModal.style.display = 'none';
-    boredomBtn.classList.remove('active');
-    boredomVideo.pause();
-  } else {
-    boredomModal.style.display = 'block';
-    boredomBtn.classList.add('active');
-    boredomVideo.play().catch(() => {});
-  }
+function switchVideo(): void {
+  currentVideoIdx = (currentVideoIdx + 1) % videoList.length;
+  boredomVideo.src = videoList[currentVideoIdx];
+  boredomVideo.load();
+  boredomVideo.play().catch(() => {});
 }
 
-boredomBtn.onclick = toggleBoredom;
+function openBoredom(): void {
+  boredomModal.style.display = 'block';
+  boredomBtn.classList.add('active');
+  boredomVideo.play().catch(() => {});
+}
+
+// При нажатии на кнопку "МНЕ СКУЧНО":
+// Если окно закрыто — открывает.
+// Если окно уже открыто — переключает на следующее видео!
+boredomBtn.onclick = () => {
+  const isVisible = boredomModal.style.display === 'block';
+  if (!isVisible) {
+    openBoredom();
+  } else {
+    switchVideo();
+  }
+};
+
+// Синяя кнопка в окне переключает на следующее видео
+boredomNextBtn.onclick = switchVideo;
+
+// Закрытие окна ТОЛЬКО по крестику
 boredomCloseBtn.onclick = () => {
   boredomModal.style.display = 'none';
   boredomBtn.classList.remove('active');
   boredomVideo.pause();
-};
-
-boredomNextBtn.onclick = () => {
-  currentVideoIdx = (currentVideoIdx + 1) % videoList.length;
-  boredomVideo.src = videoList[currentVideoIdx];
-  boredomVideo.play().catch(() => {});
 };
 
 renderMenu();
