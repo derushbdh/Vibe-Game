@@ -822,7 +822,6 @@ let isHardcore = false;
 let lastTime = performance.now();
 let elapsed = 0;
 let spawnTimer = 0;
-let nextBossTime = 45;
 let bossSpawnCount = 0;
 let bossWarningTimer = 0;
 let bossWarningText = '';
@@ -842,8 +841,10 @@ let novaWaves: NovaWave[] = [];
 let companionDrones: CompanionDrone[] = [];
 
 // Игровые параметры сложности и баланса
-const BOSS_INTERVAL_NORMAL = 75; // Кулдаун между боссами в обычном режиме (сек)
-const BOSS_INTERVAL_HARDCORE = 55; // Кулдаун между боссами в хардкоре (сек)
+// Активация Фазы 2 (босс) по количеству убийств: 45 фрагов уничтожаются в среднем за ~50 секунд боя
+const BOSS_KILLS_THRESHOLD_NORMAL = 45; // Убийств врагов до появления босса (~50 сек)
+const BOSS_KILLS_THRESHOLD_HARDCORE = 35; // В хардкоре требуется 35 убийств
+let nextBossKills = BOSS_KILLS_THRESHOLD_NORMAL;
 const MAX_ENEMIES_CAP = 75; // Максимальная плотность толпы врагов (было 50)
 const BASE_ENEMIES_COUNT = 14; // Начальное количество врагов (было 8)
 const ENEMY_SPEED_SCALING_PER_SEC = 0.0014; // Плавное ускорение врагов (+8.4% за минуту)
@@ -981,7 +982,7 @@ function startGame(): void {
   companionDrones = [];
   elapsed = 0;
   spawnTimer = 1.0;
-  nextBossTime = isHardcore ? BOSS_INTERVAL_HARDCORE : BOSS_INTERVAL_NORMAL;
+  nextBossKills = isHardcore ? BOSS_KILLS_THRESHOLD_HARDCORE : BOSS_KILLS_THRESHOLD_NORMAL;
   bossSpawnCount = 0;
   bossWarningTimer = 0;
   currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
@@ -1359,7 +1360,7 @@ function findNearestEnemy(fromX: number, fromY: number, excludeSet: Set<Enemy> |
 function updateHud(): void {
   document.getElementById('hpEl')!.textContent = `HP: ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHp}`;
   document.getElementById('lvlEl')!.textContent = `УР: ${player.lvl}`;
-  document.getElementById('killsEl')!.textContent = `FRAGS: ${player.kills}`;
+  document.getElementById('killsEl')!.innerHTML = `FRAGS: ${player.kills} <span style="font-size:11px;color:#94a3b8;font-weight:600;">(БОСС: ${Math.min(player.kills, nextBossKills)}/${nextBossKills})</span>`;
   document.getElementById('goldEl')!.innerHTML = `<span class="coin">C</span> +${player.runGold} CR`;
 
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -1759,8 +1760,9 @@ function update(dt: number): void {
   }
 
   // 4. СПАВН И ПОВЕДЕНИЕ ВРАГОВ
-  if (elapsed >= nextBossTime) {
-    nextBossTime += isHardcore ? BOSS_INTERVAL_HARDCORE : BOSS_INTERVAL_NORMAL;
+  // Активация 2 фазы (босса) по числу побежденных врагов (набирается примерно за 50 сек боя)
+  if (player.kills >= nextBossKills) {
+    nextBossKills += isHardcore ? BOSS_KILLS_THRESHOLD_HARDCORE : BOSS_KILLS_THRESHOLD_NORMAL;
     bossSpawnCount++;
     const bossKinds: ('dreadnought' | 'archon' | 'singularity')[] = ['dreadnought', 'archon', 'singularity'];
     const curKind = bossKinds[(bossSpawnCount - 1) % bossKinds.length];
@@ -1779,7 +1781,7 @@ function update(dt: number): void {
 
     bossWarningTimer = 3.5;
     bossWarningText = `⚠ ВНИМАНИЕ: ${bossNames[curKind]}! ⚠`;
-    bossWarningSub = 'В СЕКТОРЕ ОБНАРУЖЕН БОСС АЛЬФА-УРОВНЯ';
+    bossWarningSub = 'ФАЗА 2: БОСС ВЫЗВАН ПО КОЛИЧЕСТВУ УБИЙСТВ';
     bossWarningColor = bossColors[curKind];
     playSound('boss_spawn');
   }
