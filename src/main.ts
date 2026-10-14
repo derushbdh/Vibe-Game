@@ -824,6 +824,10 @@ let novaWaves: NovaWave[] = [];
 let companionDrones: CompanionDrone[] = [];
 
 // Игровые параметры сложности и баланса
+const BOSS_INTERVAL_NORMAL = 75; // Кулдаун между боссами в обычном режиме (сек)
+const BOSS_INTERVAL_HARDCORE = 55; // Кулдаун между боссами в хардкоре (сек)
+const MAX_ENEMIES_CAP = 75; // Максимальная плотность толпы врагов (было 50)
+const BASE_ENEMIES_COUNT = 14; // Начальное количество врагов (было 8)
 const ENEMY_SPEED_SCALING_PER_SEC = 0.0014; // Плавное ускорение врагов (+8.4% за минуту)
 const MEDKIT_BASE_DROP_CHANCE = 0.02; // Базовый шанс выпадения аптечки (2%)
 const MEDKIT_PITY_INCREMENT = 0.002; // Накопительный шанс за каждого убитого врага (+0.2%)
@@ -948,7 +952,7 @@ function startGame(): void {
   companionDrones = [];
   elapsed = 0;
   spawnTimer = 1.0;
-  nextBossTime = isHardcore ? 35 : 45;
+  nextBossTime = isHardcore ? BOSS_INTERVAL_HARDCORE : BOSS_INTERVAL_NORMAL;
   bossSpawnCount = 0;
   currentMedkitDropChance = MEDKIT_BASE_DROP_CHANCE;
   state = 'PLAYING';
@@ -1713,7 +1717,7 @@ function update(dt: number): void {
 
   // 4. СПАВН И ПОВЕДЕНИЕ ВРАГОВ
   if (elapsed >= nextBossTime) {
-    nextBossTime += isHardcore ? 35 : 45;
+    nextBossTime += isHardcore ? BOSS_INTERVAL_HARDCORE : BOSS_INTERVAL_NORMAL;
     bossSpawnCount++;
     const bossKinds: ('dreadnought' | 'archon' | 'singularity')[] = ['dreadnought', 'archon', 'singularity'];
     const curKind = bossKinds[(bossSpawnCount - 1) % bossKinds.length];
@@ -1732,24 +1736,27 @@ function update(dt: number): void {
     addFloatText(player.x, player.y - 50, `ВНИМАНИЕ: ${bossNames[curKind]}!`, bossColors[curKind], 20);
   }
 
-  const maxEnemies = Math.min(50, 8 + Math.floor(elapsed * 0.45));
+  const maxEnemies = Math.min(MAX_ENEMIES_CAP, BASE_ENEMIES_COUNT + Math.floor(elapsed * 0.65));
   spawnTimer -= dt / 60;
   if (spawnTimer <= 0) {
-    if (enemies.length < maxEnemies) {
-      const r = Math.random();
-      if (elapsed > 40 && r < 0.16) {
-        spawnEnemy('tank');
-      } else if (elapsed > 25 && r < 0.38) {
-        spawnEnemy('shooter');
-      } else if (elapsed > 18 && r < 0.58) {
-        spawnEnemy('kamikaze');
-      } else if (elapsed > 8 && r < 0.8) {
-        spawnEnemy('runner');
-      } else {
-        spawnEnemy('normal');
+    const batch = elapsed > 20 ? (Math.random() < 0.5 ? 2 : 1) : 1;
+    for (let b = 0; b < batch; b++) {
+      if (enemies.length < maxEnemies) {
+        const r = Math.random();
+        if (elapsed > 40 && r < 0.16) {
+          spawnEnemy('tank');
+        } else if (elapsed > 25 && r < 0.38) {
+          spawnEnemy('shooter');
+        } else if (elapsed > 18 && r < 0.58) {
+          spawnEnemy('kamikaze');
+        } else if (elapsed > 8 && r < 0.8) {
+          spawnEnemy('runner');
+        } else {
+          spawnEnemy('normal');
+        }
       }
     }
-    spawnTimer = Math.max(0.25, 1.15 - elapsed * 0.008);
+    spawnTimer = Math.max(0.18, 0.95 - elapsed * 0.007);
   }
 
   for (let i = enemies.length - 1; i >= 0; i--) {
