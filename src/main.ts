@@ -957,6 +957,18 @@ function closeRules(): void {
   }
 }
 
+function triggerPlayerDeath(): void {
+  if (state === 'PAUSED') {
+    const pauseModal = document.getElementById('pauseModal');
+    if (pauseModal) pauseModal.style.display = 'none';
+    state = 'PLAYING';
+  }
+  if (player && (state === 'PLAYING' || state === 'LEVEL_UP')) {
+    player.invuln = 0;
+    damagePlayer(player.hp + 9999);
+  }
+}
+
 function surrenderRun(): void {
   const pauseModal = document.getElementById('pauseModal');
   if (pauseModal) pauseModal.style.display = 'none';
@@ -993,6 +1005,8 @@ window.addEventListener('keydown', (e) => {
     } else if (state === 'PAUSED') {
       togglePause(false);
     }
+  } else if (e.code === 'KeyK' && state === 'PLAYING') {
+    triggerPlayerDeath();
   }
 });
 window.addEventListener('keyup', (e) => (keys[e.code] = false));
@@ -2932,6 +2946,12 @@ if (rulesPauseBtn) rulesPauseBtn.onclick = openRules;
 
 const rulesHudBtn = document.getElementById('rulesHudBtn');
 if (rulesHudBtn) rulesHudBtn.onclick = openRules;
+
+const killPlayerHudBtn = document.getElementById('killPlayerHudBtn');
+if (killPlayerHudBtn) killPlayerHudBtn.onclick = triggerPlayerDeath;
+
+const killPlayerPauseBtn = document.getElementById('killPlayerPauseBtn');
+if (killPlayerPauseBtn) killPlayerPauseBtn.onclick = triggerPlayerDeath;
 
 const closeRulesBtn = document.getElementById('closeRulesBtn');
 if (closeRulesBtn) closeRulesBtn.onclick = closeRules;
