@@ -329,6 +329,27 @@ h1 {
   box-shadow: 0 0 14px rgba(0, 255, 204, 0.3);
 }
 
+/* Плашка правил в верхнем HUD */
+.rules-hud-pill {
+  pointer-events: auto;
+  cursor: pointer;
+  background: rgba(18, 24, 44, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.rules-hud-pill:hover {
+  background: rgba(25, 45, 80, 0.95);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+}
+
 #levelModal {
   display: none;
   backdrop-filter: blur(8px);
@@ -713,4 +734,305 @@ h1 {
 @keyframes pulseDot {
   0% { opacity: 0.4; }
   100% { opacity: 1; }
+}
+
+/* =========================================================
+   ЭКРАН ПОРАЖЕНИЯ (GAME OVER) И БАННЕРЫ РЕЗУЛЬТАТОВ
+   ========================================================= */
+.game-over-box {
+  max-width: 520px;
+  border-color: #ff0055;
+  box-shadow: 0 0 60px rgba(255, 0, 85, 0.4), inset 0 0 30px rgba(255, 0, 85, 0.12);
+  animation: gameOverEntrance 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+  position: relative;
+  overflow: hidden;
+}
+
+@keyframes gameOverEntrance {
+  0% { opacity: 0; transform: scale(0.85) translateY(24px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.game-over-icon {
+  font-size: 44px;
+  margin-bottom: 6px;
+  animation: shakeDefeat 0.5s ease-out;
+}
+
+@keyframes shakeDefeat {
+  0% { transform: scale(0.6); }
+  50% { transform: scale(1.35) rotate(-6deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.game-over-badge {
+  display: inline-block;
+  background: rgba(255, 0, 85, 0.15);
+  border: 1px solid #ff0055;
+  color: #ff3377;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.game-over-title {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ff0055;
+  text-shadow: 0 0 20px rgba(255, 0, 85, 0.8), 0 0 45px rgba(255, 0, 85, 0.4);
+  margin: 0 0 8px;
+}
+
+.game-over-sub {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 22px;
+}
+
+.game-over-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: rgba(18, 22, 38, 0.9);
+  border: 1px solid #2e385a;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.stat-card:hover {
+  border-color: #ff0055;
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  font-size: 18px;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.stat-val {
+  font-size: 20px;
+  font-weight: 900;
+  color: #f1f5f9;
+}
+
+.stat-gold {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.game-over-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-retry {
+  background: linear-gradient(135deg, #ff0055, #ff3377);
+  box-shadow: 0 0 25px rgba(255, 0, 85, 0.6);
+  color: #ffffff;
+  border: none;
+  font-weight: 800;
+  padding: 14px 28px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-retry:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 35px rgba(255, 0, 85, 0.9);
+}
+
+.btn-hangar {
+  background: rgba(30, 36, 60, 0.85);
+  border: 1px solid #3b4878;
+  color: #00ffcc;
+  padding: 14px 26px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-hangar:hover {
+  background: rgba(40, 50, 85, 0.95);
+  border-color: #00ffcc;
+  transform: scale(1.04);
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+}
+
+/* ЗАМЕТНЫЙ БАННЕР ПРЕДЫДУЩЕГО ЗАБЕГА В АНГАРЕ */
+.last-run-card {
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: center;
+  margin-bottom: 14px;
+  transition: transform 0.15s ease;
+}
+
+.last-run-card.defeat {
+  background: linear-gradient(135deg, rgba(255, 0, 85, 0.15) 0%, rgba(30, 10, 20, 0.6) 100%);
+  border: 1.5px solid #ff0055;
+  box-shadow: 0 0 20px rgba(255, 0, 85, 0.25);
+}
+
+.last-run-card.surrender {
+  background: linear-gradient(135deg, rgba(100, 116, 139, 0.15) 0%, rgba(20, 24, 38, 0.6) 100%);
+  border: 1.5px solid #64748b;
+  box-shadow: 0 0 15px rgba(100, 116, 139, 0.2);
+}
+
+.last-run-badge {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.last-run-card.defeat .last-run-badge {
+  color: #ff3377;
+}
+
+.last-run-card.surrender .last-run-badge {
+  color: #94a3b8;
+}
+
+.last-run-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.last-run-info span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.last-run-info .highlight-gold {
+  color: #ffd700;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+/* КНОПКА ПРАВИЛ В АНГАРЕ */
+.btn-rules {
+  background: rgba(20, 28, 52, 0.8);
+  border: 1px solid #38bdf8;
+  color: #38bdf8;
+  padding: 8px 20px;
+  font-size: 13.5px;
+  font-weight: 800;
+  border-radius: 20px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-rules:hover {
+  background: rgba(30, 45, 80, 0.95);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
+  transform: translateY(-2px);
+}
+
+/* ОКНО "ПРАВИЛА ИГРЫ" */
+#rulesModal {
+  z-index: 45;
+}
+
+.rules-box {
+  max-width: 640px;
+  border-color: #38bdf8;
+  box-shadow: 0 0 50px rgba(56, 189, 248, 0.3);
+  animation: cardEntrance 0.25s ease-out;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.rule-card {
+  background: rgba(18, 24, 44, 0.85);
+  border: 1px solid #283760;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.15s ease;
+}
+
+.rule-card:hover {
+  border-color: #38bdf8;
+}
+
+.rule-icon {
+  font-size: 22px;
+  margin-bottom: 2px;
+}
+
+.rule-title {
+  color: #38bdf8;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.rule-desc {
+  color: #94a3b8;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.rule-desc b {
+  color: #f1f5f9;
+}
+
+.rule-desc kbd {
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  color: #38bdf8;
 }

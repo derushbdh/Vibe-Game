@@ -60,7 +60,8 @@ type SoundType =
   | 'player_hit'
   | 'heal'
   | 'explosion'
-  | 'boss_spawn';
+  | 'boss_spawn'
+  | 'game_over';
 
 let audioCtx: AudioContext | null = null;
 function playSound(type: SoundType): void {
@@ -220,6 +221,21 @@ function playSound(type: SoundType): void {
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + 0.55);
+    } else if (type === 'game_over') {
+      // Драматический нисходящий сигнал гибели корабля
+      const freqs = [330, 246.94, 196, 130.81];
+      freqs.forEach((freq, idx) => {
+        const osc = audioCtx!.createOscillator();
+        const gain = audioCtx!.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+        gain.gain.setValueAtTime(0.25, now + idx * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx!.destination);
+        osc.start(now + idx * 0.12);
+        osc.stop(now + idx * 0.12 + 0.38);
+      });
     }
   } catch {
     // Безопасный fallback, если аудио заблокировано политикой браузера
@@ -732,10 +748,40 @@ function drawShip(
 }
 
 // --- МЕНЮ И ИНТЕРФЕЙС АНГАРА ---
+let lastRunSummaryHtml: string | null = null;
+
+function getRunSummaryBanner(title: string, mode: 'defeat' | 'surrender'): string {
+  const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+  const secs = String(Math.floor(elapsed % 60)).padStart(2, '0');
+  const modeBadge = isHardcore ? ' <span style="color:#ff3377;font-weight:800;">[ХАРДКОР x2 CR]</span>' : '';
+  const cardClass = mode === 'defeat' ? 'last-run-card defeat' : 'last-run-card surrender';
+  return `
+    <div class="${cardClass}">
+      <div class="last-run-badge">${title}${modeBadge}</div>
+      <div class="last-run-info">
+        <span>⏱️ Время: <b>${mins}:${secs}</b></span>
+        <span>•</span>
+        <span>⚡ Уровень: <b>${player.lvl}</b></span>
+        <span>•</span>
+        <span>💀 Убийств: <b>${player.kills}</b></span>
+        <span>•</span>
+        <span class="highlight-gold"><span class="coin">C</span> +${player.runGold} CR</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderMenu(banner: string | null = null): void {
   const lastRunBanner = document.getElementById('lastRunBanner')!;
-  if (banner) {
-    lastRunBanner.innerHTML = `<span style="color:#00ffcc;font-weight:700">${banner}</span>`;
+  if (banner !== null) {
+    lastRunSummaryHtml = banner;
+  }
+  if (lastRunSummaryHtml) {
+    lastRunBanner.style.display = 'block';
+    lastRunBanner.innerHTML = lastRunSummaryHtml;
+  } else {
+    lastRunBanner.style.display = 'none';
+    lastRunBanner.innerHTML = '';
   }
   document.getElementById('bankEl')!.innerHTML = `БАНК: <span class="coin">C</span> ${save.gold} CR`;
 
@@ -836,7 +882,7 @@ function renderMenu(banner: string | null = null): void {
 }
 
 // --- ПЕРЕМЕННЫЕ ИГРОВОГО МИРА ---
-let state: 'MENU' | 'PLAYING' | 'LEVEL_UP' | 'PAUSED' = 'MENU';
+let state: 'MENU' | 'PLAYING' | 'LEVEL_UP' | 'PAUSED' | 'GAME_OVER' = 'MENU';
 let isHardcore = false;
 let lastTime = performance.now();
 let elapsed = 0;
@@ -886,9 +932,36 @@ function togglePause(paused: boolean): void {
   }
 }
 
+let rulesOpenedFromPlaying = false;
+function openRules(): void {
+  const rulesModal = document.getElementById('rulesModal');
+  if (!rulesModal) return;
+  rulesOpenedFromPlaying = (state === 'PLAYING');
+  if (state === 'PLAYING') {
+    togglePause(true);
+  }
+  const closeBtn = document.getElementById('closeRulesBtn');
+  if (closeBtn) {
+    closeBtn.textContent = rulesOpenedFromPlaying ? 'ПРОДОЛЖИТЬ БОЙ (ESC)' : 'ПОНЯТНО, В БОЙ!';
+  }
+  rulesModal.style.display = 'flex';
+}
+
+function closeRules(): void {
+  const rulesModal = document.getElementById('rulesModal');
+  if (!rulesModal) return;
+  rulesModal.style.display = 'none';
+  if (rulesOpenedFromPlaying) {
+    rulesOpenedFromPlaying = false;
+    togglePause(false);
+  }
+}
+
 function surrenderRun(): void {
   const pauseModal = document.getElementById('pauseModal');
   if (pauseModal) pauseModal.style.display = 'none';
+  const gameOverModal = document.getElementById('gameOverModal');
+  if (gameOverModal) gameOverModal.style.display = 'none';
   closeBoredom();
   if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
   if (boredomModal) boredomModal.style.pointerEvents = 'none';
@@ -903,13 +976,18 @@ function surrenderRun(): void {
     hero: CLASSES[save.selectedClass].name,
   });
   saveGame();
-  renderMenu(`Забег завершен (сдались)! Время: ${Math.round(elapsed)} сек | Уровень: ${player.lvl} | Добыто: +${player.runGold} CR`);
+  renderMenu(getRunSummaryBanner('🏳️ ЗАБЕГ ЗАВЕРШЕН (СДАЛИСЬ)', 'surrender'));
   document.getElementById('menuModal')!.style.display = 'flex';
 }
 
 window.addEventListener('keydown', (e) => {
   keys[e.code] = true;
   if (e.code === 'Escape') {
+    const rulesModal = document.getElementById('rulesModal');
+    if (rulesModal && rulesModal.style.display === 'flex') {
+      closeRules();
+      return;
+    }
     if (state === 'PLAYING') {
       togglePause(true);
     } else if (state === 'PAUSED') {
@@ -949,6 +1027,10 @@ window.addEventListener('pointerup', () => {
 
 function startGame(): void {
   document.getElementById('menuModal')!.style.display = 'none';
+  const gameOverModal = document.getElementById('gameOverModal');
+  if (gameOverModal) gameOverModal.style.display = 'none';
+  const rulesModal = document.getElementById('rulesModal');
+  if (rulesModal) rulesModal.style.display = 'none';
   if (boredomBtn) boredomBtn.style.pointerEvents = 'auto';
   if (boredomModal) boredomModal.style.pointerEvents = 'auto';
   const cls = CLASSES[save.selectedClass];
@@ -1344,10 +1426,26 @@ function damagePlayer(dmg: number): boolean {
   addFloatText(player.x, player.y - 20, `-${dmg} HP`, '#ff0055', 16);
 
   if (player.hp <= 0) {
-    state = 'MENU';
+    // Анимация взрыва осколков корабля
+    for (let i = 0; i < 40; i++) {
+      const pAngle = Math.random() * Math.PI * 2;
+      const pSpeed = 30 + Math.random() * 220;
+      particles.push({
+        x: player.x,
+        y: player.y,
+        vx: Math.cos(pAngle) * pSpeed,
+        vy: Math.sin(pAngle) * pSpeed,
+        life: 0.8 + Math.random() * 0.4,
+        color: Math.random() > 0.4 ? '#ff0055' : (Math.random() > 0.5 ? '#ffaa00' : '#ffffff'),
+      });
+    }
+
+    playSound('game_over');
+    state = 'GAME_OVER';
     closeBoredom();
     if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
     if (boredomModal) boredomModal.style.pointerEvents = 'none';
+
     save.telemetry.bestSurvivalSec = Math.max(save.telemetry.bestSurvivalSec, Math.round(elapsed));
     save.telemetry.maxLevelReached = Math.max(save.telemetry.maxLevelReached, player.lvl);
     save.telemetry.totalKills += player.kills;
@@ -1358,11 +1456,33 @@ function damagePlayer(dmg: number): boolean {
       hero: CLASSES[save.selectedClass].name,
     });
     saveGame();
-    const modeLabel = isHardcore ? ' [ХАРДКОР x2 CR]' : '';
-    renderMenu(
-      `Забег завершен${modeLabel}! Время: ${Math.round(elapsed)} сек | Уровень: ${player.lvl} | Добыто: +${player.runGold} CR`
-    );
-    document.getElementById('menuModal')!.style.display = 'flex';
+
+    // Заполнение данных модального окна экрана поражения
+    const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const secs = String(Math.floor(elapsed % 60)).padStart(2, '0');
+    const goTimeVal = document.getElementById('goTimeVal');
+    const goLvlVal = document.getElementById('goLvlVal');
+    const goKillsVal = document.getElementById('goKillsVal');
+    const goGoldVal = document.getElementById('goGoldVal');
+    const gameOverSub = document.getElementById('gameOverSub');
+
+    if (goTimeVal) goTimeVal.textContent = `${mins}:${secs}`;
+    if (goLvlVal) goLvlVal.textContent = String(player.lvl);
+    if (goKillsVal) goKillsVal.textContent = String(player.kills);
+    if (goGoldVal) goGoldVal.innerHTML = `<span class="coin">C</span> +${player.runGold} CR`;
+    if (gameOverSub) {
+      gameOverSub.textContent = isHardcore
+        ? 'Перехватчик уничтожен в режиме повышенной сложности [ХАРДКОР x2 CR]'
+        : 'Ваш перехватчик не выдержал натиска кибер-дронов';
+    }
+
+    // Сохраняем карточку результата для отображения в ангаре
+    lastRunSummaryHtml = getRunSummaryBanner('💀 ПОСЛЕДНИЙ ЗАБЕГ: КОРАБЛЬ УНИЧТОЖЕН', 'defeat');
+
+    // Открываем модальное окно поражения
+    const gameOverModal = document.getElementById('gameOverModal');
+    if (gameOverModal) gameOverModal.style.display = 'flex';
+
     return true;
   }
   return false;
@@ -1390,7 +1510,7 @@ function updateHud(): void {
     ? `(БОСС: ${Math.min(player.kills, nextBossThreshold)}/${nextBossThreshold})`
     : `(БОСС: ${Math.min(Math.floor(elapsed), nextBossThreshold)}/${nextBossThreshold}с)`;
 
-  document.getElementById('killsEl')!.innerHTML = `FRAGS: ${player.kills} <span style="font-size:11px;color:#94a3b8;font-weight:600;">${triggerLabel}</span>`;
+  document.getElementById('killsEl')!.innerHTML = `УБИЙСТВА: ${player.kills} <span style="font-size:11px;color:#94a3b8;font-weight:600;">${triggerLabel}</span>`;
   document.getElementById('goldEl')!.innerHTML = `<span class="coin">C</span> +${player.runGold} CR`;
 
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -2780,6 +2900,41 @@ function loop(now: number): void {
 
 // Привязка кнопок интерфейса
 document.getElementById('startBtn')!.onclick = startGame;
+
+const retryBtn = document.getElementById('retryBtn');
+if (retryBtn) {
+  retryBtn.onclick = () => {
+    const gameOverModal = document.getElementById('gameOverModal');
+    if (gameOverModal) gameOverModal.style.display = 'none';
+    startGame();
+  };
+}
+
+const toHangarBtn = document.getElementById('toHangarBtn');
+if (toHangarBtn) {
+  toHangarBtn.onclick = () => {
+    const gameOverModal = document.getElementById('gameOverModal');
+    if (gameOverModal) gameOverModal.style.display = 'none';
+    state = 'MENU';
+    renderMenu();
+    document.getElementById('menuModal')!.style.display = 'flex';
+  };
+}
+
+const rulesBtn = document.getElementById('rulesBtn');
+if (rulesBtn) rulesBtn.onclick = openRules;
+
+const rulesGameOverBtn = document.getElementById('rulesGameOverBtn');
+if (rulesGameOverBtn) rulesGameOverBtn.onclick = openRules;
+
+const rulesPauseBtn = document.getElementById('rulesPauseBtn');
+if (rulesPauseBtn) rulesPauseBtn.onclick = openRules;
+
+const rulesHudBtn = document.getElementById('rulesHudBtn');
+if (rulesHudBtn) rulesHudBtn.onclick = openRules;
+
+const closeRulesBtn = document.getElementById('closeRulesBtn');
+if (closeRulesBtn) closeRulesBtn.onclick = closeRules;
 
 const resumeBtn = document.getElementById('resumeBtn');
 if (resumeBtn) resumeBtn.onclick = () => togglePause(false);
