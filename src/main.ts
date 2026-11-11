@@ -2584,7 +2584,7 @@ function update(dt: number): void {
 
       bossWarningTimer = 4.5;
       bossWarningText = '⚠ ФАЗА 4: АПОГЕЙ! ДВОЙНОЙ БОСС АКТИВИРОВАН! ⚠';
-      bossWarningSub = 'ПЕРИМЕТР СУЖЕН ЛАЗЕРОМ. ВТОРОЙ БОСС ВЫЙДЕТ ЧЕРЕЗ 15 СЕКУНД!';
+      bossWarningSub = `ПЕРИМЕТР СУЖЕН ЛАЗЕРОМ. ВТОРОЙ БОСС ВЫЙДЕТ ЧЕРЕЗ ${PHASE4_SECOND_BOSS_DELAY_SEC} СЕКУНД!`;
       bossWarningColor = '#ff0033';
       playSound('boss_spawn');
     }

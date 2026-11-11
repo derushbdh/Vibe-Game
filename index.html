@@ -209,40 +209,59 @@
     <!-- Окно "Правила игры" -->
     <div class="modal" id="rulesModal" style="display: none;">
       <div class="box rules-box">
-        <h1 style="color: #38bdf8; margin-bottom: 6px;">📖 ПРАВИЛА И УПРАВЛЕНИЕ</h1>
-        <div class="sub" style="margin-bottom: 18px;">Краткий инструктаж пилота кибер-перехватчика</div>
+        <h1 style="color: #38bdf8; margin-bottom: 4px;">📖 ПРАВИЛА И СИСТЕМА ФАЗ</h1>
+        <div class="sub" style="margin-bottom: 14px;">Краткий и понятный инструктаж пилота кибер-перехватчика</div>
 
+        <div class="rules-section-title">🎮 БАЗОВЫЕ МЕХАНИКИ</div>
         <div class="rules-grid">
           <div class="rule-card">
-            <div class="rule-icon">🎮</div>
+            <div class="rule-icon">🕹️</div>
             <div class="rule-title">Перемещение</div>
-            <div class="rule-desc">Клавиши <b>W, A, S, D</b> или <b>Стрелочки</b>. На смартфонах и планшетах — зажмите и ведите экранный джойстик в любую точку экрана.</div>
+            <div class="rule-desc">Клавиши <b>W, A, S, D</b> или <b>Стрелочки</b> (на сенсоре — виртуальный джойстик). Главная задача — маневрировать и не попадать в окружение.</div>
           </div>
           <div class="rule-card">
             <div class="rule-icon">⚔️</div>
             <div class="rule-title">Автострельба</div>
-            <div class="rule-desc">Все бортовые орудия <b>наводятся и стреляют автоматически</b> по ближайшим целям. Ваша главная задача — маневрировать среди волн дронов.</div>
+            <div class="rule-desc">Все бортовые орудия <b>стреляют сами</b> по ближайшим целям. Вы фокусируетесь на уклонении и позиционировании.</div>
           </div>
           <div class="rule-card">
             <div class="rule-icon">💎</div>
-            <div class="rule-title">Опыт и Уровни</div>
-            <div class="rule-desc">Уничтожайте врагов и собирайте <b>энергокристаллы</b>. Каждый уровень даёт выбор из 3 улучшений систем корабля.</div>
-          </div>
-          <div class="rule-card">
-            <div class="rule-icon">💀</div>
-            <div class="rule-title">Фаза 2 (Боссы)</div>
-            <div class="rule-desc">При накоплении нужного числа убийств (или времени) на арену вылетает <b>элитный босс</b> с уникальными атаками и огромным запасом брони.</div>
+            <div class="rule-title">Кристаллы и Опыт</div>
+            <div class="rule-desc">Собирайте кристаллы с врагов. Каждый новый уровень позволяет выбрать 1 из 3 модулей улучшения систем корабля.</div>
           </div>
           <div class="rule-card">
             <div class="rule-icon">💰</div>
             <div class="rule-title">Кредиты (CR)</div>
-            <div class="rule-desc">Кредиты за забег сохраняются в <b>Банке</b> навсегда. Тратьте их в Ангаре на открытие новых корпусов и мета-прокачку.</div>
+            <div class="rule-desc">Золотые кредиты навсегда сохраняются в <b>Банке</b>. Тратьте их в Ангаре на покупку новых корпусов кораблей и вечные таланты.</div>
           </div>
-          <div class="rule-card">
-            <div class="rule-icon">⏸️</div>
-            <div class="rule-title">Пауза</div>
-            <div class="rule-desc">Нажмите клавишу <kbd>Esc</kbd> или кнопку в правом верхнем углу, чтобы остановить бой без потери дельты времени.</div>
+        </div>
+
+        <div class="rules-section-title">⚡ 4 ФАЗЫ БОЯ: КАК ПРОЙТИ ИГРУ ДО ПОБЕДЫ</div>
+        <div class="rules-grid">
+          <div class="rule-card" style="border-left: 3px solid #00ffcc;">
+            <div class="rule-icon">1️⃣</div>
+            <div class="rule-title" style="color: #00ffcc;">Фаза 1: Разгон (~0:00 – 3:30)</div>
+            <div class="rule-desc">Старт выживания. Спокойные волны дронов. Собирайте первые 4–5 модулей. <b>Переход дальше:</b> уничтожьте <b>210 врагов</b>.</div>
           </div>
+          <div class="rule-card" style="border-left: 3px solid #ffea00;">
+            <div class="rule-icon">2️⃣</div>
+            <div class="rule-title" style="color: #ffea00;">Фаза 2: Рубеж и Босс (~3:30 – 5:00)</div>
+            <div class="rule-desc">Звучит сирена тревоги! Прилетает одиночный босс с полоской HP сверху. <b>Переход дальше:</b> Фаза 3 начнется <b>строго после убийства босса</b> — заберите выпавшее Ядро Пробуждения (+50 CR)!</div>
+          </div>
+          <div class="rule-card" style="border-left: 3px solid #b829ff;">
+            <div class="rule-icon">3️⃣</div>
+            <div class="rule-title" style="color: #b829ff;">Фаза 3: Перегрузка (~5:00 – 8:00)</div>
+            <div class="rule-desc">Открыт <b>Оверклок</b> (эволюция модулей в супер-оружие). Спавнятся жирные золотые элиты, а каждые 45 сек происходят ивенты (золотой дрон, рой или маяк). <b>Переход дальше:</b> набейте <b>420 фрагов</b> внутри этой фазы.</div>
+          </div>
+          <div class="rule-card" style="border-left: 3px solid #ff0055;">
+            <div class="rule-icon">4️⃣</div>
+            <div class="rule-title" style="color: #ff0055;">Фаза 4: Двойной Босс и Эвакуация</div>
+            <div class="rule-desc">Края арены сжимает опасный лазерный периметр! Выходят сразу <b>два босса</b>. Уничтожьте обоих, зайдите в зеленую зону в центре и удерживайте её 60 секунд до прибытия челнока — <b>ПОБЕДА (+500 CR)!</b></div>
+          </div>
+        </div>
+
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px dashed #38bdf8; border-radius: 10px; padding: 10px 14px; margin-top: 10px; font-size: 12px; color: #94a3b8; text-align: left;">
+          💡 <b>Подсказка для демонстрации:</b> нажмите <kbd>Esc</kbd> для паузы без сбоя таймеров. Прямо во время боя нажмите <kbd>Shift + P</kbd>, чтобы мгновенно пропустить текущую фазу и показать следующий этап преподавателю.
         </div>
 
         <button class="btn-main" id="closeRulesBtn" style="margin-top: 14px; padding: 12px 36px; background: #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);">ПОНЯТНО, В БОЙ!</button>

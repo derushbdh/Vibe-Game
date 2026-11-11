@@ -38,14 +38,14 @@ export const ENEMY_ACCELERATION_PER_SEC = 0.0014;
  */
 export const PHASE2_TRIGGER_MODE: 'kills' | 'time' = 'kills';
 
-/** Порог убийств для вызова Фазы 2 в обычном режиме (~2.5 минуты активного боя) */
-export const PHASE2_KILLS_THRESHOLD = 140;
+/** Порог убийств для вызова Фазы 2 в обычном режиме (~3.5 минуты активного боя, замедлено в 1.5х) */
+export const PHASE2_KILLS_THRESHOLD = 210;
 
-/** Порог времени для вызова Фазы 2 при режиме 'time' (150 секунд = 2:30) */
-export const PHASE2_TIME_THRESHOLD_SEC = 150;
+/** Порог времени для вызова Фазы 2 при режиме 'time' (225 секунд = 3:45, замедлено в 1.5х) */
+export const PHASE2_TIME_THRESHOLD_SEC = 225;
 
-/** Порог убийств для вызова Фазы 2 в Хардкор-режиме */
-export const PHASE2_HARDCORE_KILLS = 90;
+/** Порог убийств для вызова Фазы 2 в Хардкор-режиме (замедлено в 1.5х) */
+export const PHASE2_HARDCORE_KILLS = 135;
 
 /** Множитель запаса здоровья босса Фазы 2 (1.0 = базовое) */
 export const PHASE2_BOSS_HP_SCALE = 1.0;
@@ -100,11 +100,11 @@ export const PHASE3_OVERCLOCK_UNLOCKED = true;
  */
 export const PHASE4_TRIGGER_MODE: 'kills' | 'time' = 'kills';
 
-/** Порог убийств внутри Фазы 3 для перехода в Фазу 4 (280 фрагов) */
-export const PHASE4_KILLS_FROM_PHASE3 = 280;
+/** Порог убийств внутри Фазы 3 для перехода в Фазу 4 (420 фрагов, замедлено в 1.5х) */
+export const PHASE4_KILLS_FROM_PHASE3 = 420;
 
-/** Порог времени выживания внутри Фазы 3 (210 сек = 3:30) */
-export const PHASE4_TIME_FROM_PHASE3_SEC = 210;
+/** Порог времени выживания внутри Фазы 3 (315 сек = 5:15, замедлено в 1.5х) */
+export const PHASE4_TIME_FROM_PHASE3_SEC = 315;
 
 
 // ============================================================================
@@ -117,8 +117,8 @@ export const PHASE4_ENEMY_MAX_CAP = 120;
 /** Множитель здоровья для финальных боссов Фазы 4 */
 export const PHASE4_BOSS_HP_MULT = 1.5;
 
-/** Задержка выхода второго босса в Фазе 4 (в секундах) */
-export const PHASE4_SECOND_BOSS_DELAY_SEC = 15;
+/** Задержка выхода второго босса в Фазе 4 (в секундах, увеличена в 1.5х с 15с до 25с) */
+export const PHASE4_SECOND_BOSS_DELAY_SEC = 25;
 
 /** Отступ лазерных границ от краёв арены (px) */
 export const PHASE4_ARENA_BORDER_PADDING = 140;
