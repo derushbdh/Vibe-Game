@@ -95,6 +95,18 @@ canvas {
   padding: 4px 9px;
   border-radius: 6px;
   font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.skill-tag.overclock-tag {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.22), rgba(184, 41, 255, 0.28));
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.45);
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+  letter-spacing: 0.3px;
 }
 
 /* Золотая кибер-монета CR (вместо неработающего эмодзи на Windows) */
