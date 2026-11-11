@@ -1884,11 +1884,7 @@ function updateHud(): void {
   document.getElementById('hpEl')!.textContent = `HP: ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHp}`;
   document.getElementById('lvlEl')!.textContent = `УР: ${player.lvl}`;
 
-  const triggerLabel = PHASE2_TRIGGER_MODE === 'kills'
-    ? `(БОСС: ${Math.min(player.kills, nextBossThreshold)}/${nextBossThreshold})`
-    : `(БОСС: ${Math.min(Math.floor(elapsed), nextBossThreshold)}/${nextBossThreshold}с)`;
-
-  document.getElementById('killsEl')!.innerHTML = `УБИЙСТВА: ${player.kills} <span style="font-size:11px;color:#94a3b8;font-weight:600;">${triggerLabel}</span>`;
+  document.getElementById('killsEl')!.textContent = `УБИЙСТВА: ${player.kills}`;
   document.getElementById('goldEl')!.innerHTML = `<span class="coin">C</span> +${player.runGold} CR`;
 
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
