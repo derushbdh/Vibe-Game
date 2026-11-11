@@ -56,10 +56,24 @@ canvas {
   gap: 8px;
 }
 
+.hud-col-right {
+  align-items: flex-end;
+}
+
 .hud-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.hud-row-right {
+  justify-content: flex-end;
+}
+
+.hud-actions-row {
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 2px;
 }
 
 .pill {
