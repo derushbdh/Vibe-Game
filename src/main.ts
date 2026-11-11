@@ -5,6 +5,10 @@ import {
   ENEMY_MIN_SPAWN_INTERVAL,
   ENEMY_BASE_COUNT,
   ENEMY_MAX_CAP,
+  ENEMY_MAX_CAP_PHASE1,
+  ENEMY_MAX_CAP_PHASE2,
+  ENEMY_MAX_CAP_PHASE3,
+  ENEMY_MAX_CAP_PHASE4,
   ENEMY_ACCELERATION_PER_SEC,
   PHASE2_TRIGGER_MODE,
   PHASE2_KILLS_THRESHOLD,
@@ -33,6 +37,11 @@ import {
   PHASE4_EXTRACTION_RADIUS,
   PHASE4_EXTRACTION_TIME_SEC,
   PHASE4_VICTORY_CR_BONUS,
+  ENEMY_BASE_CONTACT_DAMAGE,
+  PLAYER_IFRAMES_DURATION_SEC,
+  CROWD_CRUSH_EXTRA_DAMAGE_MULT,
+  ENEMY_DAMAGE_PHASE_SCALE,
+  ENEMY_HP_PHASE_SCALE,
   MEDKIT_DROP_CHANCE,
   MEDKIT_PITY_BONUS,
   MEDKIT_HEAL_VALUE,
@@ -354,6 +363,7 @@ interface Enemy {
   spinAngle?: number;
   isElite?: boolean;
   isConvoy?: boolean;
+  isSwarm?: boolean;
   targetVx?: number;
   targetVy?: number;
   slowTimer?: number;
@@ -517,7 +527,7 @@ const CLASSES: HeroClass[] = [
     name: 'Страж',
     desc: 'Тяжелый перехватчик с мощной броней. Старт: Авто-бластер',
     price: 0,
-    hp: 100,
+    hp: 110,
     speed: 3.1,
     startSkill: 'blaster',
     color: '#00ffcc',
@@ -527,7 +537,7 @@ const CLASSES: HeroClass[] = [
     name: 'Фантом',
     desc: 'Скоростной стреловидный стелс-дрон. Старт: Кибер-клинки',
     price: 150,
-    hp: 85,
+    hp: 80,
     speed: 3.6,
     startSkill: 'blades',
     color: '#ff2a85',
@@ -546,7 +556,7 @@ const CLASSES: HeroClass[] = [
 
 // --- ПОСТОЯННЫЕ АПГРЕЙДЫ В АНГАРЕ ---
 const META_LIST: MetaUpgrade[] = [
-  { key: 'hp', name: 'Титановая броня', desc: '+20 к макс. здоровью на старте', cost: 55, max: 5 },
+  { key: 'hp', name: 'Титановая броня', desc: '+10 к макс. здоровью на старте', cost: 55, max: 5 },
   { key: 'dmg', name: 'Ядро перегрузки', desc: '+15% ко всему урону навсегда', cost: 70, max: 5 },
   { key: 'magnet', name: 'Грави-сборщик', desc: '+30% к радиусу сбора кристаллов', cost: 45, max: 5 },
 ];
@@ -688,7 +698,7 @@ const OVERCLOCK_SKILLS: Record<string, OverclockInfo> = {
   },
   magnet: {
     title: 'Гравитационный импульс',
-    desc: 'Каждые 20 сек стягивает все кристаллы карты к герою и дает +15 HP',
+    desc: 'Каждые 20 сек стягивает все кристаллы карты к герою и дает +8 HP',
     color: '#a855f7',
     icon: '🧲',
   },
@@ -1024,6 +1034,7 @@ let bossWarningColor = '#ff0055';
 let spawnedBossTypes: ('dreadnought' | 'archon' | 'singularity')[] = [];
 let phase3StartTime = 0;
 let phase3StartKills = 0;
+let phase3NonSwarmKills = 0;
 let phase3EventTimer = 0;
 let isOverclockUnlocked = false;
 let secondBossTimer = 0;
@@ -1115,7 +1126,7 @@ function advancePhaseTest(): void {
     if (PHASE2_TRIGGER_MODE === 'kills') {
       player.kills = isHardcore ? PHASE2_HARDCORE_KILLS : PHASE2_KILLS_THRESHOLD;
     } else {
-      elapsed = isHardcore ? PHASE2_HARDCORE_KILLS : PHASE2_TIME_THRESHOLD_SEC;
+      elapsed = isHardcore ? Math.round(PHASE2_TIME_THRESHOLD_SEC * 0.65) : PHASE2_TIME_THRESHOLD_SEC;
     }
     addFloatText(player.x, player.y - 30, 'DEBUG: ПЕРЕХОД В ФАЗУ 2', '#ffea00', 18);
   } else if (currentPhase === 'PHASE_2_BOSS') {
@@ -1124,6 +1135,7 @@ function advancePhaseTest(): void {
     addFloatText(player.x, player.y - 30, 'DEBUG: БОСС УНИЧТОЖЕН -> ФАЗА 3', '#b829ff', 18);
   } else if (currentPhase === 'PHASE_3_ESCALATION') {
     if (PHASE4_TRIGGER_MODE === 'kills') {
+      phase3NonSwarmKills = PHASE4_KILLS_FROM_PHASE3;
       player.kills = phase3StartKills + PHASE4_KILLS_FROM_PHASE3;
     } else {
       elapsed = phase3StartTime + PHASE4_TIME_FROM_PHASE3_SEC;
@@ -1248,7 +1260,7 @@ function startGame(): void {
   if (boredomBtn) boredomBtn.style.pointerEvents = 'auto';
   if (boredomModal) boredomModal.style.pointerEvents = 'auto';
   const cls = CLASSES[save.selectedClass];
-  const maxHp = cls.hp + (save.meta.hp || 0) * 20;
+  const maxHp = cls.hp + (save.meta.hp || 0) * 10;
 
   player = {
     x: 0,
@@ -1294,6 +1306,7 @@ function startGame(): void {
   spawnedBossTypes = [];
   phase3StartTime = 0;
   phase3StartKills = 0;
+  phase3NonSwarmKills = 0;
   phase3EventTimer = 0;
   isOverclockUnlocked = false;
   secondBossTimer = 0;
@@ -1305,13 +1318,18 @@ function startGame(): void {
   bladePulseTimer = 4.0;
 
   elapsed = 0;
-  spawnTimer = 1.0;
+  spawnTimer = ENEMY_SPAWN_INTERVAL / 1000;
   nextBossThreshold = isHardcore
     ? PHASE2_HARDCORE_KILLS
     : (PHASE2_TRIGGER_MODE === 'kills' ? PHASE2_KILLS_THRESHOLD : PHASE2_TIME_THRESHOLD_SEC);
   bossSpawnCount = 0;
   bossWarningTimer = 0;
   currentMedkitDropChance = MEDKIT_DROP_CHANCE;
+  // Стартовая группа врагов для плавного разгона (ENEMY_BASE_COUNT = 6)
+  for (let k = 0; k < ENEMY_BASE_COUNT; k++) {
+    spawnEnemy('normal');
+  }
+
   state = 'PLAYING';
   lastTime = performance.now();
 
@@ -1616,8 +1634,13 @@ function spawnEnemy(
     const canBeElite = currentPhase === 'PHASE_3_ESCALATION' || currentPhase === 'PHASE_4_DUAL_BOSS' || currentPhase === 'PHASE_4_EXTRACTION';
     const isElite = canBeElite && Math.random() < PHASE3_ELITE_SPAWN_CHANCE;
 
+    const currentPhaseIndex = Math.min(3, Math.max(0, getCurrentPhaseNumber() - 1));
+    const hpPhaseMult = ENEMY_HP_PHASE_SCALE[currentPhaseIndex];
+    const timeHpMult = 1 + (elapsed / 60) * 0.15;
+    const commonHpMult = hpPhaseMult * timeHpMult * (isHardcore ? 1.35 : 1.0) * extractionHpMult;
+
     if (type === 'tank') {
-      let hp = Math.round((32 + elapsed * 0.9) * (isHardcore ? 1.35 : 1.0) * extractionHpMult);
+      let hp = Math.round(32 * commonHpMult);
       let r = 20;
       let xp = 3;
       let gold = 3;
@@ -1647,7 +1670,7 @@ function spawnEnemy(
         isElite,
       });
     } else if (type === 'shooter') {
-      let hp = Math.round((16 + elapsed * 0.45) * (isHardcore ? 1.35 : 1.0) * extractionHpMult);
+      let hp = Math.round(16 * commonHpMult);
       let r = 15;
       let xp = 2;
       let gold = 2;
@@ -1678,7 +1701,7 @@ function spawnEnemy(
         isElite,
       });
     } else if (type === 'kamikaze') {
-      let hp = Math.round((8 + elapsed * 0.25) * (isHardcore ? 1.35 : 1.0) * extractionHpMult);
+      let hp = Math.round(8 * commonHpMult);
       let r = 11;
       let xp = 2;
       let gold = 2;
@@ -1708,7 +1731,7 @@ function spawnEnemy(
         isElite,
       });
     } else if (type === 'runner') {
-      let hp = Math.round((10 + elapsed * 0.35) * (isHardcore ? 1.35 : 1.0) * extractionHpMult);
+      let hp = Math.round(10 * commonHpMult);
       let r = 12;
       let xp = 1;
       let gold = 1;
@@ -1738,7 +1761,7 @@ function spawnEnemy(
         isElite,
       });
     } else {
-      let hp = Math.round((14 + elapsed * 0.5) * (isHardcore ? 1.35 : 1.0) * extractionHpMult);
+      let hp = Math.round(14 * commonHpMult);
       let r = 14;
       let xp = 1;
       let gold = 1;
@@ -1791,7 +1814,7 @@ function damageEnemy(e: Enemy, dmg: number): void {
 function damagePlayer(dmg: number): boolean {
   if (player.invuln > 0) return false;
   player.hp -= dmg;
-  player.invuln = 35;
+  player.invuln = Math.round(PLAYER_IFRAMES_DURATION_SEC * 60);
   playSound('player_hit');
   addFloatText(player.x, player.y - 20, `-${dmg} HP`, '#ff0055', 16);
 
@@ -1879,11 +1902,7 @@ function updateHud(): void {
   document.getElementById('hpEl')!.textContent = `HP: ${Math.max(0, Math.ceil(player.hp))} / ${player.maxHp}`;
   document.getElementById('lvlEl')!.textContent = `УР: ${player.lvl}`;
 
-  const triggerLabel = PHASE2_TRIGGER_MODE === 'kills'
-    ? `(БОСС: ${Math.min(player.kills, nextBossThreshold)}/${nextBossThreshold})`
-    : `(БОСС: ${Math.min(Math.floor(elapsed), nextBossThreshold)}/${nextBossThreshold}с)`;
-
-  document.getElementById('killsEl')!.innerHTML = `УБИЙСТВА: ${player.kills} <span style="font-size:11px;color:#94a3b8;font-weight:600;">${triggerLabel}</span>`;
+  document.getElementById('killsEl')!.textContent = `УБИЙСТВА: ${player.kills}`;
   document.getElementById('goldEl')!.innerHTML = `<span class="coin">C</span> +${player.runGold} CR`;
 
   const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -1903,9 +1922,17 @@ function updateHud(): void {
   const phaseEl = document.getElementById('phaseEl');
   if (phaseEl) {
     if (currentPhase === 'PHASE_1') {
-      const curVal = PHASE2_TRIGGER_MODE === 'kills' ? player.kills : Math.floor(elapsed);
-      const maxVal = nextBossThreshold;
-      phaseEl.innerHTML = `ФАЗА 1: РАЗГОН <span style="font-size:11px;opacity:0.8;">(${curVal}/${maxVal})</span>`;
+      if (PHASE2_TRIGGER_MODE === 'time') {
+        const targetSec = isHardcore ? Math.round(PHASE2_TIME_THRESHOLD_SEC * 0.65) : PHASE2_TIME_THRESHOLD_SEC;
+        const remSec = Math.max(0, Math.ceil(targetSec - elapsed));
+        const m = String(Math.floor(remSec / 60)).padStart(2, '0');
+        const s = String(remSec % 60).padStart(2, '0');
+        phaseEl.innerHTML = `ФАЗА 1: РАЗГОН <span style="font-size:11px;opacity:0.8;">(ДО БОССА: ${m}:${s})</span>`;
+      } else {
+        const curVal = player.kills;
+        const maxVal = nextBossThreshold;
+        phaseEl.innerHTML = `ФАЗА 1: РАЗГОН <span style="font-size:11px;opacity:0.8;">(${curVal}/${maxVal})</span>`;
+      }
       phaseEl.className = 'pill phase-pill p1';
     } else if (currentPhase === 'PHASE_2_BOSS') {
       const boss = enemies.find((e) => e.type === 'boss');
@@ -1913,9 +1940,16 @@ function updateHud(): void {
       phaseEl.innerHTML = `ФАЗА 2: ПЕРВЫЙ РУБЕЖ <span style="font-size:11px;opacity:0.8;">(БОСС ${pct}%)</span>`;
       phaseEl.className = 'pill phase-pill p2';
     } else if (currentPhase === 'PHASE_3_ESCALATION') {
-      const curVal = PHASE4_TRIGGER_MODE === 'kills' ? player.kills - phase3StartKills : Math.floor(elapsed - phase3StartTime);
-      const maxVal = PHASE4_TRIGGER_MODE === 'kills' ? PHASE4_KILLS_FROM_PHASE3 : PHASE4_TIME_FROM_PHASE3_SEC;
-      phaseEl.innerHTML = `ФАЗА 3: ЭСКАЛАЦИЯ <span style="font-size:11px;opacity:0.8;">(${Math.min(curVal, maxVal)}/${maxVal})</span>`;
+      if (PHASE4_TRIGGER_MODE === 'time') {
+        const remSec = Math.max(0, Math.ceil(PHASE4_TIME_FROM_PHASE3_SEC - (elapsed - phase3StartTime)));
+        const m = String(Math.floor(remSec / 60)).padStart(2, '0');
+        const s = String(remSec % 60).padStart(2, '0');
+        phaseEl.innerHTML = `ФАЗА 3: ЭСКАЛАЦИЯ <span style="font-size:11px;opacity:0.8;">(ФИНАЛ ЧЕРЕЗ: ${m}:${s})</span>`;
+      } else {
+        const curVal = phase3NonSwarmKills;
+        const maxVal = PHASE4_KILLS_FROM_PHASE3;
+        phaseEl.innerHTML = `ФАЗА 3: ЭСКАЛАЦИЯ <span style="font-size:11px;opacity:0.8;">(${Math.min(curVal, maxVal)}/${maxVal})</span>`;
+      }
       phaseEl.className = 'pill phase-pill p3';
     } else if (currentPhase === 'PHASE_4_DUAL_BOSS') {
       const count = enemies.filter((e) => e.type === 'boss').length;
@@ -2051,8 +2085,8 @@ function update(dt: number): void {
         mk.x = player.x;
         mk.y = player.y;
       }
-      player.hp = Math.min(player.maxHp, player.hp + 15);
-      addFloatText(player.x, player.y - 30, 'ГРАВИТАЦИОННЫЙ ИМПУЛЬС: +15 HP!', '#a855f7', 18);
+      player.hp = Math.min(player.maxHp, player.hp + 8);
+      addFloatText(player.x, player.y - 30, 'ГРАВИТАЦИОННЫЙ ИМПУЛЬС: +8 HP!', '#a855f7', 18);
       playSound('heal');
     }
   }
@@ -2473,7 +2507,7 @@ function update(dt: number): void {
     const isP2Trigger =
       PHASE2_TRIGGER_MODE === 'kills'
         ? player.kills >= (isHardcore ? PHASE2_HARDCORE_KILLS : PHASE2_KILLS_THRESHOLD)
-        : elapsed >= (isHardcore ? PHASE2_HARDCORE_KILLS : PHASE2_TIME_THRESHOLD_SEC);
+        : elapsed >= (isHardcore ? Math.round(PHASE2_TIME_THRESHOLD_SEC * 0.65) : PHASE2_TIME_THRESHOLD_SEC);
 
     if (isP2Trigger) {
       currentPhase = 'PHASE_2_BOSS';
@@ -2508,6 +2542,7 @@ function update(dt: number): void {
           const offset = (k - 7) * 45;
           enemies.push({
             type: 'kamikaze',
+            isSwarm: true,
             x: player.x + 620 + offset,
             y: player.y - 620 + offset,
             r: 11,
@@ -2563,10 +2598,10 @@ function update(dt: number): void {
       }
     }
 
-    // Триггер перехода в Фазу 4
+    // Триггер перехода в Фазу 4 (не учитывает мелких камикадзе из роя)
     const isP4Trigger =
       PHASE4_TRIGGER_MODE === 'kills'
-        ? player.kills - phase3StartKills >= PHASE4_KILLS_FROM_PHASE3
+        ? phase3NonSwarmKills >= PHASE4_KILLS_FROM_PHASE3
         : elapsed - phase3StartTime >= PHASE4_TIME_FROM_PHASE3_SEC;
 
     if (isP4Trigger) {
@@ -2647,14 +2682,21 @@ function update(dt: number): void {
     }
   }
 
-  // 4.6 Спавн регулярных волн мобов
-  const maxEnemies = (currentPhase === 'PHASE_4_DUAL_BOSS' || currentPhase === 'PHASE_4_EXTRACTION')
-    ? PHASE4_ENEMY_MAX_CAP
-    : Math.min(ENEMY_MAX_CAP, ENEMY_BASE_COUNT + Math.floor(elapsed * 0.65));
+  // 4.6 Спавн регулярных волн мобов с динамическим лимитом по фазам
+  let maxEnemies = ENEMY_MAX_CAP_PHASE1;
+  if (currentPhase === 'PHASE_2_BOSS') {
+    maxEnemies = ENEMY_MAX_CAP_PHASE2;
+  } else if (currentPhase === 'PHASE_3_ESCALATION') {
+    maxEnemies = ENEMY_MAX_CAP_PHASE3;
+  } else if (currentPhase === 'PHASE_4_DUAL_BOSS' || currentPhase === 'PHASE_4_EXTRACTION') {
+    maxEnemies = ENEMY_MAX_CAP_PHASE4;
+  }
 
   spawnTimer -= dt / 60;
   if (spawnTimer <= 0) {
-    const batch = elapsed > 20 ? (Math.random() < 0.5 ? 2 : 1) : 1;
+    const batch = currentPhase === 'PHASE_1'
+      ? (Math.random() < 0.25 ? 2 : 1)
+      : (elapsed > 20 ? (Math.random() < 0.5 ? 2 : 1) : 1);
     for (let b = 0; b < batch; b++) {
       if (enemies.length < maxEnemies) {
         const r = Math.random();
@@ -2673,11 +2715,15 @@ function update(dt: number): void {
     }
 
     if (currentPhase === 'PHASE_3_ESCALATION') {
-      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL, PHASE3_SPAWN_INTERVAL / 1000 - elapsed * 0.005);
+      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, PHASE3_SPAWN_INTERVAL / 1000);
     } else if (currentPhase === 'PHASE_4_EXTRACTION') {
       spawnTimer = 0.55;
+    } else if (currentPhase === 'PHASE_1') {
+      // Плавный разгон от ENEMY_SPAWN_INTERVAL (1.4с) до 1.0с к концу фазы 1 (150 сек)
+      const progress = Math.min(1.0, elapsed / PHASE2_TIME_THRESHOLD_SEC);
+      spawnTimer = (ENEMY_SPAWN_INTERVAL / 1000) - progress * 0.4;
     } else {
-      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL, ENEMY_SPAWN_INTERVAL / 1000 - elapsed * 0.007);
+      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, 1.0 - (elapsed - PHASE2_TIME_THRESHOLD_SEC) * 0.003);
     }
   }
 
@@ -2740,6 +2786,7 @@ function update(dt: number): void {
         currentPhase = 'PHASE_3_ESCALATION';
         phase3StartTime = elapsed;
         phase3StartKills = player.kills;
+        phase3NonSwarmKills = 0;
         phase3EventTimer = PHASE3_EVENT_INTERVAL_SEC;
         isOverclockUnlocked = true;
 
@@ -2777,6 +2824,9 @@ function update(dt: number): void {
 
       const earnedGold = isHardcore ? e.gold * 2 : e.gold;
       player.kills++;
+      if (currentPhase === 'PHASE_3_ESCALATION' && !e.isSwarm) {
+        phase3NonSwarmKills++;
+      }
       player.runGold += earnedGold;
       save.gold += earnedGold;
       gems.push({ x: e.x, y: e.y, xp: e.xp, isBoss: e.type === 'boss' });
@@ -3050,10 +3100,27 @@ function update(dt: number): void {
     if (distToPlayer < e.r + player.r) {
       if (e.type === 'kamikaze') {
         e.hp = 0;
-      } else if (player.invuln <= 0) {
-        if (damagePlayer(e.dmg)) return;
       }
     }
+  }
+
+  // Механика «Давка толпы» (Crowd Crush) и контактный урон
+  let collidingCount = 0;
+  let hasBossColliding = false;
+  for (const e of enemies) {
+    if (e.hp > 0 && e.type !== 'kamikaze' && Math.hypot(e.x - player.x, e.y - player.y) < e.r + player.r) {
+      collidingCount++;
+      if (e.type === 'boss') hasBossColliding = true;
+    }
+  }
+
+  if (collidingCount > 0 && player.invuln <= 0) {
+    const currentPhaseIndex = Math.min(3, Math.max(0, getCurrentPhaseNumber() - 1));
+    const phaseMult = ENEMY_DAMAGE_PHASE_SCALE[currentPhaseIndex];
+    const crowdMult = 1 + Math.max(0, collidingCount - 1) * CROWD_CRUSH_EXTRA_DAMAGE_MULT;
+    const baseDamage = hasBossColliding ? 28 : ENEMY_BASE_CONTACT_DAMAGE;
+    const finalDamage = Math.round(baseDamage * phaseMult * crowdMult);
+    if (damagePlayer(finalDamage)) return;
   }
 
   // 5. КРИСТАЛЛЫ ОПЫТА И АПТЕЧКИ
