@@ -11,21 +11,21 @@
 /** Множитель скорости перемещения обычных врагов (1.0 = норма) */
 export const ENEMY_SPEED_SCALE = 1.0;
 
-/** Базовый интервал между появлениями врагов в миллисекундах (700 мс = комфортный активный спавн) */
-export const ENEMY_SPAWN_INTERVAL = 700;
+/** Базовый интервал между появлениями врагов в миллисекундах (580 мс = частый боевой спавн) */
+export const ENEMY_SPAWN_INTERVAL = 580;
 
 /** Минимальный интервал спавна при максимальном разгоне сложности (мс) */
 export const ENEMY_MIN_SPAWN_INTERVAL = 180;
 
-/** Начальное количество врагов на арене на старте (12 дронов вместо 6) */
-export const ENEMY_BASE_COUNT = 12;
+/** Начальное количество врагов на арене на старте (16 дронов для плотного старта) */
+export const ENEMY_BASE_COUNT = 16;
 
 /** Лимиты врагов на экране по фазам (динамический потолок) */
-export const ENEMY_MAX_CAP_PHASE1 = 36;
-export const ENEMY_MAX_CAP_PHASE2 = 45;
-export const ENEMY_MAX_CAP_PHASE3 = 60;
-export const ENEMY_MAX_CAP_PHASE4 = 75;
-export const ENEMY_MAX_CAP = 75;
+export const ENEMY_MAX_CAP_PHASE1 = 44;
+export const ENEMY_MAX_CAP_PHASE2 = 55;
+export const ENEMY_MAX_CAP_PHASE3 = 72;
+export const ENEMY_MAX_CAP_PHASE4 = 90;
+export const ENEMY_MAX_CAP = 90;
 
 /** Постепенное ускорение врагов со временем (+8.4% за минуту выживания) */
 export const ENEMY_ACCELERATION_PER_SEC = 0.0014;
@@ -71,8 +71,8 @@ export const PHASE2_ALERT_DURATION_SEC = 3.5;
 /** Множитель скорости перемещения врагов в Фазе 3 (+25% к скорости) */
 export const PHASE3_ENEMY_SPEED_SCALE = 1.25;
 
-/** Динамичный спавн волн врагов в Фазе 3 (450 мс) */
-export const PHASE3_SPAWN_INTERVAL = 450;
+/** Динамичный спавн волн врагов в Фазе 3 (380 мс) */
+export const PHASE3_SPAWN_INTERVAL = 380;
 
 /** Шанс появления Элитного дрона среди обычных врагов (0.10 = 10%) */
 export const PHASE3_ELITE_SPAWN_CHANCE = 0.10;
@@ -116,7 +116,7 @@ export const PHASE4_KILLS_FROM_PHASE3 = 380;
 // ============================================================================
 
 /** Повышенный лимит плотности толпы для финальной битвы */
-export const PHASE4_ENEMY_MAX_CAP = 70;
+export const PHASE4_ENEMY_MAX_CAP = 90;
 
 /** Множитель здоровья для финальных боссов Фазы 4 */
 export const PHASE4_BOSS_HP_MULT = 1.5;
@@ -157,7 +157,7 @@ export const CROWD_CRUSH_EXTRA_DAMAGE_MULT = 0.35;
 export const ENEMY_DAMAGE_PHASE_SCALE = [1.0, 1.35, 1.75, 2.2];
 
 /** Множитель базового HP врагов по фазам (Фаза 1 -> 4) */
-export const ENEMY_HP_PHASE_SCALE = [1.0, 1.5, 2.4, 3.2];
+export const ENEMY_HP_PHASE_SCALE = [1.2, 1.8, 2.8, 3.8];
 
 
 // ============================================================================
