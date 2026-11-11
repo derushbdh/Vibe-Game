@@ -11,21 +11,21 @@
 /** Множитель скорости перемещения обычных врагов (1.0 = норма) */
 export const ENEMY_SPEED_SCALE = 1.0;
 
-/** Базовый интервал между появлениями врагов в миллисекундах (1400 мс = плавный старт) */
-export const ENEMY_SPAWN_INTERVAL = 1400;
+/** Базовый интервал между появлениями врагов в миллисекундах (700 мс = комфортный активный спавн) */
+export const ENEMY_SPAWN_INTERVAL = 700;
 
 /** Минимальный интервал спавна при максимальном разгоне сложности (мс) */
 export const ENEMY_MIN_SPAWN_INTERVAL = 180;
 
-/** Начальное количество врагов на арене на старте (было 24 -> теперь 6) */
-export const ENEMY_BASE_COUNT = 6;
+/** Начальное количество врагов на арене на старте (12 дронов вместо 6) */
+export const ENEMY_BASE_COUNT = 12;
 
 /** Лимиты врагов на экране по фазам (динамический потолок) */
-export const ENEMY_MAX_CAP_PHASE1 = 28;
-export const ENEMY_MAX_CAP_PHASE2 = 38;
-export const ENEMY_MAX_CAP_PHASE3 = 52;
-export const ENEMY_MAX_CAP_PHASE4 = 70;
-export const ENEMY_MAX_CAP = 70;
+export const ENEMY_MAX_CAP_PHASE1 = 36;
+export const ENEMY_MAX_CAP_PHASE2 = 45;
+export const ENEMY_MAX_CAP_PHASE3 = 60;
+export const ENEMY_MAX_CAP_PHASE4 = 75;
+export const ENEMY_MAX_CAP = 75;
 
 /** Постепенное ускорение врагов со временем (+8.4% за минуту выживания) */
 export const ENEMY_ACCELERATION_PER_SEC = 0.0014;
@@ -71,8 +71,8 @@ export const PHASE2_ALERT_DURATION_SEC = 3.5;
 /** Множитель скорости перемещения врагов в Фазе 3 (+25% к скорости) */
 export const PHASE3_ENEMY_SPEED_SCALE = 1.25;
 
-/** Умеренный спавн волн врагов в Фазе 3 (950 мс) */
-export const PHASE3_SPAWN_INTERVAL = 950;
+/** Динамичный спавн волн врагов в Фазе 3 (450 мс) */
+export const PHASE3_SPAWN_INTERVAL = 450;
 
 /** Шанс появления Элитного дрона среди обычных врагов (0.10 = 10%) */
 export const PHASE3_ELITE_SPAWN_CHANCE = 0.10;
