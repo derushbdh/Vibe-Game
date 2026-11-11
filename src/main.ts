@@ -1218,7 +1218,7 @@ window.addEventListener('keydown', (e) => {
     advancePhaseTest();
   } else if (e.code === 'KeyU' && e.shiftKey && state === 'PLAYING') {
     player.lvl++;
-    player.nextXp = Math.floor(player.nextXp * 1.32 + 4);
+    player.nextXp = Math.floor(player.nextXp * 1.22 + 3);
     openLevelUp();
   }
 });
@@ -1446,7 +1446,7 @@ function openLevelUp(): void {
         if (player.xp >= player.nextXp) {
           player.xp -= player.nextXp;
           player.lvl++;
-          player.nextXp = Math.floor(player.nextXp * 1.32 + 4);
+          player.nextXp = Math.floor(player.nextXp * 1.22 + 3);
           openLevelUp();
         } else {
           state = 'PLAYING';
@@ -1527,7 +1527,7 @@ function openLevelUp(): void {
         if (player.xp >= player.nextXp) {
           player.xp -= player.nextXp;
           player.lvl++;
-          player.nextXp = Math.floor(player.nextXp * 1.32 + 4);
+          player.nextXp = Math.floor(player.nextXp * 1.22 + 3);
           openLevelUp();
         } else {
           state = 'PLAYING';
@@ -1576,7 +1576,7 @@ function spawnEnemy(
         dmg: 28,
         color: '#b829ff',
         sides: 8,
-        xp: 22,
+        xp: 35,
         gold: 35,
         pushX: 0,
         pushY: 0,
@@ -1604,7 +1604,7 @@ function spawnEnemy(
         dmg: 30,
         color: '#ff6600',
         sides: 10,
-        xp: 28,
+        xp: 45,
         gold: 50,
         pushX: 0,
         pushY: 0,
@@ -1627,7 +1627,7 @@ function spawnEnemy(
         dmg: 26,
         color: '#ff0055',
         sides: 6,
-        xp: 18,
+        xp: 30,
         gold: 30,
         pushX: 0,
         pushY: 0,
@@ -1648,7 +1648,7 @@ function spawnEnemy(
     if (type === 'tank') {
       let hp = Math.round(32 * commonHpMult);
       let r = 20;
-      let xp = 3;
+      let xp = 6;
       let gold = 3;
       let color = '#ff8800';
       if (isElite) {
@@ -1678,7 +1678,7 @@ function spawnEnemy(
     } else if (type === 'shooter') {
       let hp = Math.round(16 * commonHpMult);
       let r = 15;
-      let xp = 2;
+      let xp = 4;
       let gold = 2;
       let color = '#ff3366';
       if (isElite) {
@@ -1709,7 +1709,7 @@ function spawnEnemy(
     } else if (type === 'kamikaze') {
       let hp = Math.round(8 * commonHpMult);
       let r = 11;
-      let xp = 2;
+      let xp = 3;
       let gold = 2;
       let color = '#ff3b00';
       if (isElite) {
@@ -1739,7 +1739,7 @@ function spawnEnemy(
     } else if (type === 'runner') {
       let hp = Math.round(10 * commonHpMult);
       let r = 12;
-      let xp = 1;
+      let xp = 2;
       let gold = 1;
       let color = '#ff2a85';
       if (isElite) {
@@ -1769,7 +1769,7 @@ function spawnEnemy(
     } else {
       let hp = Math.round(14 * commonHpMult);
       let r = 14;
-      let xp = 1;
+      let xp = 2;
       let gold = 1;
       let color = '#ff4422';
       if (isElite) {
@@ -2618,41 +2618,25 @@ function update(dt: number): void {
       const allBosses: ('dreadnought' | 'archon' | 'singularity')[] = ['dreadnought', 'archon', 'singularity'];
       const rem = allBosses.filter((b) => !spawnedBossTypes.includes(b));
       const firstFinalBoss = rem[0] || 'archon';
-      queuedSecondBossKind = rem[1] || (firstFinalBoss === 'archon' ? 'singularity' : 'dreadnought');
+      const secondFinalBoss = rem[1] || (firstFinalBoss === 'archon' ? 'singularity' : 'dreadnought');
 
-      spawnedBossTypes.push(firstFinalBoss);
+      spawnedBossTypes.push(firstFinalBoss, secondFinalBoss);
       spawnEnemy('boss', firstFinalBoss);
+      spawnEnemy('boss', secondFinalBoss);
+      secondBossSpawned = true;
 
-      secondBossTimer = PHASE4_SECOND_BOSS_DELAY_SEC;
-      secondBossSpawned = false;
-
-      bossWarningTimer = 4.5;
-      bossWarningText = '⚠ ФАЗА 4: АПОГЕЙ! ДВОЙНОЙ БОСС АКТИВИРОВАН! ⚠';
-      bossWarningSub = `ПЕРИМЕТР СУЖЕН ЛАЗЕРОМ. ВТОРОЙ БОСС ВЫЙДЕТ ЧЕРЕЗ ${PHASE4_SECOND_BOSS_DELAY_SEC} СЕКУНД!`;
+      bossWarningTimer = 5.0;
+      bossWarningText = '⚠ ФАЗА 4: АПОГЕЙ! ДВОЙНОЙ БОСС! ⚠';
+      bossWarningSub = `${bossNames[firstFinalBoss]} И ${bossNames[secondFinalBoss]} ВСТУПАЮТ В БОЙ ОДНОВРЕМЕННО!`;
       bossWarningColor = '#ff0033';
       playSound('boss_spawn');
     }
   }
 
-  // 4.3 Логика Фазы 4: Двойной босс и задержка второго босса
+  // 4.3 Логика Фазы 4: Двойной босс (проверка уничтожения обоих)
   if (currentPhase === 'PHASE_4_DUAL_BOSS') {
-    if (!secondBossSpawned) {
-      secondBossTimer -= dt / 60;
-      if (secondBossTimer <= 0) {
-        secondBossSpawned = true;
-        spawnedBossTypes.push(queuedSecondBossKind);
-        spawnEnemy('boss', queuedSecondBossKind);
-
-        bossWarningTimer = 4.0;
-        bossWarningText = `⚠ ВТОРОЙ БОСС ВСТУПАЕТ В БОЙ: ${bossNames[queuedSecondBossKind]}! ⚠`;
-        bossWarningSub = 'ОБЕ СИСТЕМЫ КОМАНДОВАНИЯ ПРОТИВНИКА В АРЕНЕ!';
-        bossWarningColor = '#ff0033';
-        playSound('boss_spawn');
-      }
-    }
-
-    // Проверка победы над обоими боссами -> Переход в Фазу 4 Эвакуации
-    if (secondBossSpawned && enemies.filter((e) => e.type === 'boss').length === 0) {
+    // Проверка победы над обоими боссами -> Немедленный переход в Фазу 4 Эвакуации
+    if (enemies.filter((e) => e.type === 'boss').length === 0) {
       currentPhase = 'PHASE_4_EXTRACTION';
       extractionTimer = PHASE4_EXTRACTION_TIME_SEC;
       bossWarningTimer = 5.0;
@@ -3157,7 +3141,7 @@ function update(dt: number): void {
       if (player.xp >= player.nextXp) {
         player.xp -= player.nextXp;
         player.lvl++;
-        player.nextXp = Math.floor(player.nextXp * 1.32 + 4);
+        player.nextXp = Math.floor(player.nextXp * 1.22 + 3);
         openLevelUp();
         return;
       }
