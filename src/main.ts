@@ -1331,7 +1331,7 @@ function startGame(): void {
   bossSpawnCount = 0;
   bossWarningTimer = 0;
   currentMedkitDropChance = MEDKIT_DROP_CHANCE;
-  // Стартовая группа врагов для плавного разгона (ENEMY_BASE_COUNT = 6)
+  // Стартовая группа врагов для активного старта (ENEMY_BASE_COUNT = 16)
   for (let k = 0; k < ENEMY_BASE_COUNT; k++) {
     spawnEnemy('normal');
   }
@@ -1562,7 +1562,7 @@ function spawnEnemy(
   if (type === 'boss') {
     const kind = bossKind || 'dreadnought';
     if (kind === 'archon') {
-      const hp = Math.round((1300 + elapsed * 14) * hcHpMult * PHASE2_BOSS_HP_SCALE * phaseBossHpMult);
+      const hp = Math.round((1650 + elapsed * 18) * hcHpMult * PHASE2_BOSS_HP_SCALE * phaseBossHpMult);
       enemies.push({
         type: 'boss',
         bossType: 'archon',
@@ -1590,7 +1590,7 @@ function spawnEnemy(
         spinAngle: 0,
       });
     } else if (kind === 'singularity') {
-      const hp = Math.round((1800 + elapsed * 18) * hcHpMult * PHASE2_BOSS_HP_SCALE * phaseBossHpMult);
+      const hp = Math.round((2200 + elapsed * 22) * hcHpMult * PHASE2_BOSS_HP_SCALE * phaseBossHpMult);
       enemies.push({
         type: 'boss',
         bossType: 'singularity',
@@ -1613,7 +1613,7 @@ function spawnEnemy(
         dashTime: 0,
       });
     } else {
-      const hp = Math.round((850 + elapsed * 10) * hcHpMult * PHASE2_BOSS_HP_SCALE * phaseBossHpMult);
+      const hp = Math.round((1100 + elapsed * 14) * hcHpMult * PHASE2_BOSS_HP_SCALE * phaseBossHpMult);
       enemies.push({
         type: 'boss',
         bossType: 'dreadnought',
@@ -1642,11 +1642,11 @@ function spawnEnemy(
 
     const currentPhaseIndex = Math.min(3, Math.max(0, getCurrentPhaseNumber() - 1));
     const hpPhaseMult = ENEMY_HP_PHASE_SCALE[currentPhaseIndex];
-    const timeHpMult = 1 + (elapsed / 60) * 0.15;
+    const timeHpMult = 1 + (elapsed / 60) * 0.18;
     const commonHpMult = hpPhaseMult * timeHpMult * (isHardcore ? 1.35 : 1.0) * extractionHpMult;
 
     if (type === 'tank') {
-      let hp = Math.round(32 * commonHpMult);
+      let hp = Math.round(42 * commonHpMult);
       let r = 20;
       let xp = 6;
       let gold = 3;
@@ -1676,7 +1676,7 @@ function spawnEnemy(
         isElite,
       });
     } else if (type === 'shooter') {
-      let hp = Math.round(16 * commonHpMult);
+      let hp = Math.round(20 * commonHpMult);
       let r = 15;
       let xp = 4;
       let gold = 2;
@@ -1707,7 +1707,7 @@ function spawnEnemy(
         isElite,
       });
     } else if (type === 'kamikaze') {
-      let hp = Math.round(8 * commonHpMult);
+      let hp = Math.round(10 * commonHpMult);
       let r = 11;
       let xp = 3;
       let gold = 2;
@@ -1737,7 +1737,7 @@ function spawnEnemy(
         isElite,
       });
     } else if (type === 'runner') {
-      let hp = Math.round(10 * commonHpMult);
+      let hp = Math.round(13 * commonHpMult);
       let r = 12;
       let xp = 2;
       let gold = 1;
@@ -1767,7 +1767,7 @@ function spawnEnemy(
         isElite,
       });
     } else {
-      let hp = Math.round(14 * commonHpMult);
+      let hp = Math.round(18 * commonHpMult);
       let r = 14;
       let xp = 2;
       let gold = 1;
@@ -2715,13 +2715,13 @@ function update(dt: number): void {
     if (currentPhase === 'PHASE_3_ESCALATION') {
       spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, PHASE3_SPAWN_INTERVAL / 1000);
     } else if (currentPhase === 'PHASE_4_EXTRACTION') {
-      spawnTimer = 0.45;
+      spawnTimer = 0.38;
     } else if (currentPhase === 'PHASE_1') {
-      // Плавный разгон от ENEMY_SPAWN_INTERVAL (0.70с) до 0.38с к концу фазы 1 (150 сек)
+      // Плавный разгон от ENEMY_SPAWN_INTERVAL (0.58с) до 0.30с к концу фазы 1 (150 сек)
       const progress = Math.min(1.0, elapsed / PHASE2_TIME_THRESHOLD_SEC);
-      spawnTimer = Math.max(0.35, (ENEMY_SPAWN_INTERVAL / 1000) - progress * 0.32);
+      spawnTimer = Math.max(0.30, (ENEMY_SPAWN_INTERVAL / 1000) - progress * 0.28);
     } else {
-      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, 0.65 - (elapsed - PHASE2_TIME_THRESHOLD_SEC) * 0.003);
+      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, 0.55 - (elapsed - PHASE2_TIME_THRESHOLD_SEC) * 0.003);
     }
   }
 
