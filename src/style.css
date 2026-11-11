@@ -580,7 +580,7 @@ h1 {
 .boredom-trigger {
   position: fixed;
   right: 16px;
-  top: 76px;
+  top: 102px;
   z-index: 15;
   background: linear-gradient(135deg, #18203d, #0d1226);
   border: 1.5px solid #00ffcc;
