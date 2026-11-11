@@ -1305,13 +1305,18 @@ function startGame(): void {
   bladePulseTimer = 4.0;
 
   elapsed = 0;
-  spawnTimer = 1.0;
+  spawnTimer = ENEMY_SPAWN_INTERVAL / 1000;
   nextBossThreshold = isHardcore
     ? PHASE2_HARDCORE_KILLS
     : (PHASE2_TRIGGER_MODE === 'kills' ? PHASE2_KILLS_THRESHOLD : PHASE2_TIME_THRESHOLD_SEC);
   bossSpawnCount = 0;
   bossWarningTimer = 0;
   currentMedkitDropChance = MEDKIT_DROP_CHANCE;
+  // Стартовая группа врагов для немедленного входа в динамичный бой
+  for (let k = 0; k < 12; k++) {
+    spawnEnemy('normal');
+  }
+
   state = 'PLAYING';
   lastTime = performance.now();
 
@@ -2673,11 +2678,11 @@ function update(dt: number): void {
     }
 
     if (currentPhase === 'PHASE_3_ESCALATION') {
-      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL, PHASE3_SPAWN_INTERVAL / 1000 - elapsed * 0.005);
+      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, PHASE3_SPAWN_INTERVAL / 1000 - elapsed * 0.005);
     } else if (currentPhase === 'PHASE_4_EXTRACTION') {
       spawnTimer = 0.55;
     } else {
-      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL, ENEMY_SPAWN_INTERVAL / 1000 - elapsed * 0.007);
+      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, ENEMY_SPAWN_INTERVAL / 1000 - elapsed * 0.007);
     }
   }
 
