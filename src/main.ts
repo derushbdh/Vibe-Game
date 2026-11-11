@@ -1045,6 +1045,7 @@ let overclockedSkills: Set<string> = new Set();
 let activeBeacon: { x: number; y: number; r: number; life: number } | null = null;
 let globalMagnetTimer = 20.0;
 let bladePulseTimer = 4.0;
+let laserDamageTimer = 0;
 
 let player!: Player;
 let bullets: Bullet[] = [];
@@ -1320,6 +1321,7 @@ function startGame(): void {
   activeBeacon = null;
   globalMagnetTimer = 20.0;
   bladePulseTimer = 4.0;
+  laserDamageTimer = 0;
 
   elapsed = 0;
   spawnTimer = ENEMY_SPAWN_INTERVAL / 1000;
@@ -2681,11 +2683,16 @@ function update(dt: number): void {
   if (currentPhase === 'PHASE_4_DUAL_BOSS' || currentPhase === 'PHASE_4_EXTRACTION') {
     const ARENA_LIMIT = 1100 - PHASE4_ARENA_BORDER_PADDING;
     if (Math.abs(player.x) > ARENA_LIMIT || Math.abs(player.y) > ARENA_LIMIT) {
-      const laserDmg = Math.round(PHASE4_BORDER_DPS * (dt / 60));
-      if (laserDmg > 0 && player.invuln <= 0) {
-        if (damagePlayer(laserDmg)) return;
-        addFloatText(player.x, player.y - 25, `ЛАЗЕРНЫЙ ПЕРИМЕТР! -${laserDmg}`, '#ff0033', 14);
+      laserDamageTimer -= dt / 60;
+      if (laserDamageTimer <= 0) {
+        laserDamageTimer = 0.35;
+        damagePlayer(9);
+        playSound('enemy_shoot');
+        addFloatText(player.x, player.y - 25, 'ЛАЗЕРНЫЙ ПЕРИМЕТР! -9', '#ff0033', 15);
+        addParticles(player.x, player.y, '#ff0033', 8, 2.5);
       }
+    } else {
+      laserDamageTimer = 0;
     }
   }
 
