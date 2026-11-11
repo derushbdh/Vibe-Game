@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#06070d" />
+    <title>Cyber Survivors</title>
+    <script type="module" crossorigin src="./assets/index-ltQKiVTJ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-CmevoxWG.css">
+  </head>
+  <body>
+    <!-- Полоска опыта -->
+    <div id="xpWrap"><div id="xpFill"></div></div>
+
+    <!-- Верхний интерфейс (HUD) -->
+    <div id="hud">
+      <div class="hud-col">
+        <div class="hud-row">
+          <div class="pill" id="hpEl">HP: 100 / 100</div>
+          <div class="pill" id="lvlEl" style="color: #00ffcc">УР: 1</div>
+        </div>
+        <div class="hud-row" id="skillsBar"></div>
+      </div>
+      <div class="hud-col hud-col-right">
+        <div class="hud-row hud-row-right">
+          <div class="pill phase-pill" id="phaseEl" style="color: #00ffcc; font-weight: 800;">ФАЗА 1/4: РАЗГОН</div>
+          <div class="pill" id="killsEl">УБИЙСТВА: 0</div>
+          <div class="pill" id="goldEl" style="color: #ffd700"><span class="coin">C</span> 0 CR</div>
+          <div class="pill" id="timeEl">00:00</div>
+          <div class="pill hardcore-pill" id="hardcorePill" style="display: none;">☠ ХАРДКОР x2 CR</div>
+        </div>
+        <div class="hud-row hud-actions-row">
+          <div class="pill rules-hud-pill" id="rulesHudBtn" title="Посмотреть правила игры">📖 Правила</div>
+          <div class="pill pause-hint-pill" id="pauseHintBtn" title="Нажмите клавишу Esc или кликните сюда для паузы">⏸ Пауза: <kbd>Esc</kbd></div>
+          <div class="pill kill-test-pill" id="killPlayerHudBtn" title="Тест для преподавателя: проверить экран гибели">💀 Умереть (тест)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Кнопка "Мне скучно" и окно чистки ковра -->
+    <button id="boredomBtn" class="boredom-trigger">🧹 МНЕ СКУЧНО</button>
+
+    <div id="boredomModal" class="boredom-pip">
+      <div class="boredom-header">
+        <span class="boredom-title">🧼 ДОФАМИН [1/3]</span>
+        <div class="boredom-btns">
+          <button id="boredomSpeedBtn" title="Скорость видео (1x / 1.5x / 2x)">1x</button>
+          <button id="boredomMuteBtn" title="Вкл / Выкл звук видео (ASMR)">🔇</button>
+          <button id="boredomNextBtn" title="Сменить ковер">🔁</button>
+          <button id="boredomCloseBtn" title="Свернуть">✕</button>
+        </div>
+      </div>
+      <div class="boredom-video-wrap">
+        <video id="carpetVideo0" class="carpet-video active" src="./videos/carpet1.mp4" loop muted playsinline preload="auto"></video>
+        <video id="carpetVideo1" class="carpet-video" src="./videos/carpet2.mp4" loop muted playsinline preload="auto" style="display: none;"></video>
+        <video id="carpetVideo2" class="carpet-video" src="./videos/carpet3.mp4" loop muted playsinline preload="auto" style="display: none;"></video>
+        <div id="boredomLoader" class="boredom-loader" style="display: none;">
+          <div class="boredom-spinner"></div>
+          <span>Загрузка ковра...</span>
+        </div>
+      </div>
+      <div class="boredom-footer">
+        <span class="live-dot"></span> Фоновая чистка ковра активна
+      </div>
+    </div>
+
+    <!-- Меню / Ангар -->
+    <div class="modal" id="menuModal">
+      <div class="box">
+        <h1>CYBER SURVIVORS</h1>
+        <div id="lastRunBanner" class="last-run-banner-wrap"></div>
+        <div style="margin-bottom: 14px;">
+          <button class="btn-rules" id="rulesBtn">📖 ПРАВИЛА ИГРЫ И УПРАВЛЕНИЕ</button>
+        </div>
+        <div style="font-size: 20px; font-weight: 800; color: #ffd700; margin-bottom: 14px;" id="bankEl">
+          БАНК: <span class="coin">C</span> 0 CR
+        </div>
+
+        <div style="text-align: left; font-weight: 700; margin-bottom: 8px; color: #00ffcc;">
+          1. ВЫБЕРИ КОРПУС ГЕРОЯ:
+        </div>
+        <div class="grid-3" id="classGrid"></div>
+
+        <div style="text-align: left; font-weight: 700; margin-bottom: 8px; color: #b829ff;">
+          2. МЕТА-ПРОКАЧКА В АНГАРЕ (НАВСЕГДА):
+        </div>
+        <div class="grid-3" id="metaGrid"></div>
+
+        <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 10px;">
+          <button class="btn-main" id="startBtn">НАЧАТЬ ЗАБЕГ</button>
+          <button class="btn-hardcore locked" id="hardcoreBtn">🔒 ХАРДКОР (НУЖЕН 15 УР)</button>
+          <button class="btn-sec" id="telemetryBtn" style="border-color: #a855f7; color: #c084fc;">📊 ТЕЛЕМЕТРИЯ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Экран победы (Victory / Эвакуация) -->
+    <div class="modal" id="victoryModal" style="display: none;">
+      <div class="box victory-box">
+        <div class="victory-icon">🏆</div>
+        <div class="victory-badge">⭐ МИССИЯ ВЫПОЛНЕНА ⭐</div>
+        <h1 class="victory-title">ЭВАКУАЦИЯ УСПЕШНА!</h1>
+        <div class="sub victory-sub">
+          Все 4 фазы пройдены. Сектор очищен от кибер-угрозы!
+        </div>
+
+        <div class="game-over-stats">
+          <div class="stat-card">
+            <span class="stat-icon">⏱️</span>
+            <span class="stat-label">ВРЕМЯ ВЫЖИВАНИЯ</span>
+            <span class="stat-val" id="vicTimeVal">00:00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⚡</span>
+            <span class="stat-label">ИТОГОВЫЙ УРОВЕНЬ</span>
+            <span class="stat-val" id="vicLvlVal">1</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">💀</span>
+            <span class="stat-label">ВСЕГО УБИЙСТВ</span>
+            <span class="stat-val" id="vicKillsVal">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon"><span class="coin">C</span></span>
+            <span class="stat-label">ДОБЫЧА + БОНУС ПОБЕДЫ</span>
+            <span class="stat-val stat-gold" id="vicGoldVal">+500 CR</span>
+          </div>
+        </div>
+
+        <div id="vicOverclockWrap" style="margin-bottom: 20px; font-size: 13.5px; color: #cbd5e1; display: none;">
+          <span style="font-weight: 800; color: #f59e0b;">⚡ ОВЕРКЛОК МОДУЛИ:</span>
+          <div id="vicOverclockList" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px;"></div>
+        </div>
+
+        <div class="game-over-actions">
+          <button class="btn-main btn-victory" id="vicHangarBtn">🚀 В АНГАР (ЗАБРАТЬ НАГРАДУ)</button>
+          <button class="btn-sec" id="vicRetryBtn">🔁 СЫГРАТЬ СНОВА</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно телеметрии (История забегов и JSON-экспорт) -->
+    <div class="modal" id="telemetryModal" style="display: none;">
+      <div class="box telemetry-box">
+        <h1 style="color: #c084fc; margin-bottom: 6px;">📊 ИСТОРИЯ ЗАБЕГОВ И ТЕЛЕМЕТРИЯ</h1>
+        <div class="sub" style="margin-bottom: 14px;">Метрики сессий, пройденные фазы и прокачка</div>
+
+        <div class="telemetry-table-wrap">
+          <table class="telemetry-table" id="telemetryTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Герой</th>
+                <th>Время</th>
+                <th>Ур.</th>
+                <th>Убийства</th>
+                <th>Статус / Фаза</th>
+                <th>Оверклок</th>
+              </tr>
+            </thead>
+            <tbody id="telemetryBody">
+              <!-- Заполняется динамически -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
+          <button class="btn-main" id="exportTelemetryBtn" style="background: #a855f7; box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); color: #fff;">💾 СКАЧАТЬ JSON</button>
+          <button class="btn-sec" id="closeTelemetryBtn">ЗАКРЫТЬ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Экран поражения (Game Over) -->
+    <div class="modal" id="gameOverModal" style="display: none;">
+      <div class="box game-over-box">
+        <div class="game-over-icon">💥</div>
+        <div class="game-over-badge">💀 СИСТЕМЫ ОТКЛЮЧЕНЫ</div>
+        <h1 class="game-over-title">КОРАБЛЬ УНИЧТОЖЕН</h1>
+        <div class="sub game-over-sub" id="gameOverSub">
+          Ваш перехватчик потерпел крушение в секторе
+        </div>
+
+        <div class="game-over-stats">
+          <div class="stat-card">
+            <span class="stat-icon">⏱️</span>
+            <span class="stat-label">ВРЕМЯ БОЯ</span>
+            <span class="stat-val" id="goTimeVal">00:00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⚡</span>
+            <span class="stat-label">УРОВЕНЬ</span>
+            <span class="stat-val" id="goLvlVal">1</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">💀</span>
+            <span class="stat-label">УБИЙСТВА</span>
+            <span class="stat-val" id="goKillsVal">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon"><span class="coin">C</span></span>
+            <span class="stat-label">ДОБЫТО КРЕДИТОВ</span>
+            <span class="stat-val stat-gold" id="goGoldVal">+0 CR</span>
+          </div>
+        </div>
+
+        <div class="game-over-actions">
+          <button class="btn-main btn-retry" id="retryBtn">🔁 ИГРАТЬ СНОВА</button>
+          <button class="btn-hangar" id="toHangarBtn">🚀 В АНГАР (ПРОКАЧКА)</button>
+          <button class="btn-sec" id="rulesGameOverBtn" style="border-color: #38bdf8; color: #38bdf8; padding: 14px 20px;">📖 ПРАВИЛА</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Окно "Правила игры" -->
+    <div class="modal" id="rulesModal" style="display: none;">
+      <div class="box rules-box">
+        <h1 style="color: #38bdf8; margin-bottom: 4px;">📖 ПРАВИЛА И СИСТЕМА ФАЗ</h1>
+        <div class="sub" style="margin-bottom: 14px;">Краткий и понятный инструктаж пилота кибер-перехватчика</div>
+
+        <div class="rules-section-title">🎮 БАЗОВЫЕ МЕХАНИКИ</div>
+        <div class="rules-grid">
+          <div class="rule-card">
+            <div class="rule-icon">🕹️</div>
+            <div class="rule-title">Перемещение</div>
+            <div class="rule-desc">Клавиши <b>W, A, S, D</b> или <b>Стрелочки</b> (на сенсоре — виртуальный джойстик). Главная задача — маневрировать и не попадать в окружение.</div>
+          </div>
+          <div class="rule-card">
+            <div class="rule-icon">⚔️</div>
+            <div class="rule-title">Автострельба</div>
+            <div class="rule-desc">Все бортовые орудия <b>стреляют сами</b> по ближайшим целям. Вы фокусируетесь на уклонении и позиционировании.</div>
+          </div>
+          <div class="rule-card">
+            <div class="rule-icon">💎</div>
+            <div class="rule-title">Кристаллы и Опыт</div>
+            <div class="rule-desc">Собирайте кристаллы с врагов. Каждый новый уровень позволяет выбрать 1 из 3 модулей улучшения систем корабля.</div>
+          </div>
+          <div class="rule-card">
+            <div class="rule-icon">💰</div>
+            <div class="rule-title">Кредиты (CR)</div>
+            <div class="rule-desc">Золотые кредиты навсегда сохраняются в <b>Банке</b>. Тратьте их в Ангаре на покупку новых корпусов кораблей и вечные таланты.</div>
+          </div>
+        </div>
+
+        <div class="rules-section-title">⚡ 4 ФАЗЫ БОЯ: КАК ПРОЙТИ ИГРУ ДО ПОБЕДЫ</div>
+        <div class="rules-grid">
+          <div class="rule-card" style="border-left: 3px solid #00ffcc;">
+            <div class="rule-icon">1️⃣</div>
+            <div class="rule-title" style="color: #00ffcc;">Фаза 1: Разгон (~0:00 – 3:30)</div>
+            <div class="rule-desc">Старт выживания. Спокойные волны дронов. Собирайте первые 4–5 модулей. <b>Переход дальше:</b> уничтожьте <b>210 врагов</b>.</div>
+          </div>
+          <div class="rule-card" style="border-left: 3px solid #ffea00;">
+            <div class="rule-icon">2️⃣</div>
+            <div class="rule-title" style="color: #ffea00;">Фаза 2: Рубеж и Босс (~3:30 – 5:00)</div>
+            <div class="rule-desc">Звучит сирена тревоги! Прилетает одиночный босс с полоской HP сверху. <b>Переход дальше:</b> Фаза 3 начнется <b>строго после убийства босса</b> — заберите выпавшее Ядро Пробуждения (+50 CR)!</div>
+          </div>
+          <div class="rule-card" style="border-left: 3px solid #b829ff;">
+            <div class="rule-icon">3️⃣</div>
+            <div class="rule-title" style="color: #b829ff;">Фаза 3: Перегрузка (~5:00 – 8:00)</div>
+            <div class="rule-desc">Открыт <b>Оверклок</b> (эволюция модулей в супер-оружие). Спавнятся жирные золотые элиты, а каждые 45 сек происходят ивенты (золотой дрон, рой или маяк). <b>Переход дальше:</b> набейте <b>420 фрагов</b> внутри этой фазы.</div>
+          </div>
+          <div class="rule-card" style="border-left: 3px solid #ff0055;">
+            <div class="rule-icon">4️⃣</div>
+            <div class="rule-title" style="color: #ff0055;">Фаза 4: Двойной Босс и Эвакуация</div>
+            <div class="rule-desc">Края арены сжимает опасный лазерный периметр! Выходят сразу <b>два босса</b>. Уничтожьте обоих, зайдите в зеленую зону в центре и удерживайте её 60 секунд до прибытия челнока — <b>ПОБЕДА (+500 CR)!</b></div>
+          </div>
+        </div>
+
+        <div style="background: rgba(30, 41, 59, 0.7); border: 1px dashed #38bdf8; border-radius: 10px; padding: 10px 14px; margin-top: 10px; font-size: 12px; color: #94a3b8; text-align: left;">
+          💡 <b>Подсказка для демонстрации:</b> нажмите <kbd>Esc</kbd> для паузы без сбоя таймеров. Прямо во время боя нажмите <kbd>Shift + P</kbd>, чтобы мгновенно пропустить текущую фазу и показать следующий этап преподавателю.
+        </div>
+
+        <button class="btn-main" id="closeRulesBtn" style="margin-top: 14px; padding: 12px 36px; background: #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);">ПОНЯТНО, В БОЙ!</button>
+      </div>
+    </div>
+
+    <!-- Выбор способности при повышении уровня -->
+    <div class="modal" id="levelModal">
+      <div class="box lvl-box">
+        <div class="lvl-header">
+          <h1 class="lvl-title">⚡ НОВЫЙ УРОВЕНЬ! ⚡</h1>
+          <div class="lvl-sub">ВЫБЕРИ СИСТЕМНЫЙ МОДУЛЬ УЛУЧШЕНИЯ</div>
+        </div>
+        <div class="grid-3" id="upgradeChoices"></div>
+      </div>
+    </div>
+
+    <!-- Меню паузы (ESC) -->
+    <div class="modal" id="pauseModal" style="display: none;">
+      <div class="box" style="max-width: 440px; text-align: center;">
+        <h1 style="color: #00ffcc; letter-spacing: 2px; margin-bottom: 6px;">⏸ ПАУЗА</h1>
+        <div class="sub">СИСТЕМА НА ОЖИДАНИИ. ВЫ МОЖЕТЕ ПРОДОЛЖИТЬ БОЙ ИЛИ ВЕРНУТЬСЯ В АНГАР</div>
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 18px; flex-wrap: wrap;">
+          <button class="btn-main" id="resumeBtn">ПРОДОЛЖИТЬ (ESC)</button>
+          <button class="btn-sec" id="rulesPauseBtn" style="border-color: #38bdf8; color: #38bdf8;">📖 ПРАВИЛА</button>
+          <button class="btn-sec" id="killPlayerPauseBtn" style="border-color: #ff0055; color: #ff3377;" title="Тест для преподавателя: проверить экран гибели">💀 ТЕСТ: ПОГИБНУТЬ</button>
+          <button class="btn-hardcore unlocked" id="surrenderBtn" style="background: rgba(30,35,55,0.8); border-color: #64748b; color: #cbd5e1;">СДАТЬСЯ В АНГАР</button>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="c"></canvas>
+
+  </body>
+</html>
