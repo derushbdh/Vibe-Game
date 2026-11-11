@@ -1215,6 +1215,10 @@ window.addEventListener('keydown', (e) => {
     triggerPlayerDeath();
   } else if (e.code === 'KeyP' && e.shiftKey && state === 'PLAYING') {
     advancePhaseTest();
+  } else if (e.code === 'KeyU' && e.shiftKey && state === 'PLAYING') {
+    player.lvl++;
+    player.nextXp = Math.floor(player.nextXp * 1.32 + 4);
+    openLevelUp();
   }
 });
 window.addEventListener('keyup', (e) => (keys[e.code] = false));
@@ -2011,8 +2015,11 @@ function update(dt: number): void {
     }
   }
 
-  player.x += mx * player.speed * dt;
-  player.y += my * player.speed * dt;
+  const inBeacon = Boolean(activeBeacon && Math.hypot(player.x - activeBeacon.x, player.y - activeBeacon.y) <= activeBeacon.r);
+  const beaconSpeedMult = inBeacon ? 1.35 : 1.0;
+
+  player.x += mx * player.speed * beaconSpeedMult * dt;
+  player.y += my * player.speed * beaconSpeedMult * dt;
 
   // Хроно-ускоритель (Оверклок скорости): плазменный след позади корабля
   if (isMoving && overclockedSkills.has('speed') && Math.random() < 0.28) {
@@ -2096,14 +2103,14 @@ function update(dt: number): void {
     activeBeacon.life -= dt / 60;
     if (activeBeacon.life <= 0) {
       activeBeacon = null;
-    } else if (Math.hypot(player.x - activeBeacon.x, player.y - activeBeacon.y) <= activeBeacon.r) {
-      // Находясь в зоне маяка, все оружия перезаряжаются на 50% быстрее
-      player.timers.blaster -= dt * 0.5;
-      player.timers.lightning -= dt * 0.5;
-      player.timers.nova -= dt * 0.5;
-      player.timers.chakram -= dt * 0.5;
-      player.timers.drone -= dt * 0.5;
-      if (Math.random() < 0.2) {
+    } else if (inBeacon) {
+      // Находясь в зоне маяка: скорость перезарядки оружия удваивается (x2 пулемётный огонь)
+      player.timers.blaster -= dt * 1.0;
+      player.timers.lightning -= dt * 1.0;
+      player.timers.nova -= dt * 1.0;
+      player.timers.chakram -= dt * 1.0;
+      player.timers.drone -= dt * 1.0;
+      if (Math.random() < 0.25) {
         addParticles(player.x, player.y, '#00ffcc', 2, 1.5);
       }
     }
@@ -2586,10 +2593,10 @@ function update(dt: number): void {
           targetVy: -Math.sin(ang) * 0.85,
         });
       } else {
-        // Микро-ивент 3: Маяк перегрузки (+50% скорострельности на 20 сек)
+        // Микро-ивент 3: Маяк перегрузки (+35% скорости корабля и огонь x2 на 20 сек)
         bossWarningTimer = 4.0;
         bossWarningText = '⚡ ЗОНА УСКОРЕНИЯ: МАЯК ПЕРЕГРУЗКИ (20 СЕК)! ⚡';
-        bossWarningSub = 'НАХОДИТЕСЬ В ЗОНЕ ДЛЯ +50% СКОРОСТРЕЛЬНОСТИ ВСЕХ ОРУДИЙ';
+        bossWarningSub = 'НАХОДИТЕСЬ В ЗОНЕ: +35% СКОРОСТЬ КОРАБЛЯ И ОГОНЬ x2!';
         bossWarningColor = '#00ffcc';
         playSound('upgrade');
         const bx = player.x + (Math.random() - 0.5) * 400;
@@ -3396,7 +3403,7 @@ function draw(): void {
     ctx.textAlign = 'center';
     ctx.font = "800 12px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = '#00ffcc';
-    ctx.fillText(`⚡ МАЯК: ${Math.ceil(activeBeacon.life)}с (+50% СКОРОСТЬ)`, activeBeacon.x, activeBeacon.y - activeBeacon.r - 8);
+    ctx.fillText(`⚡ МАЯК ПЕРЕГРУЗКИ: ${Math.ceil(activeBeacon.life)}с (+35% СКОРОСТЬ / ОГОНЬ x2)`, activeBeacon.x, activeBeacon.y - activeBeacon.r - 8);
     ctx.restore();
   }
 
