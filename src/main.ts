@@ -2695,8 +2695,8 @@ function update(dt: number): void {
   spawnTimer -= dt / 60;
   if (spawnTimer <= 0) {
     const batch = currentPhase === 'PHASE_1'
-      ? (Math.random() < 0.25 ? 2 : 1)
-      : (elapsed > 20 ? (Math.random() < 0.5 ? 2 : 1) : 1);
+      ? (Math.random() < 0.65 ? 2 : (Math.random() < 0.35 ? 3 : 1))
+      : (Math.random() < 0.6 ? 2 : 3);
     for (let b = 0; b < batch; b++) {
       if (enemies.length < maxEnemies) {
         const r = Math.random();
@@ -2717,13 +2717,13 @@ function update(dt: number): void {
     if (currentPhase === 'PHASE_3_ESCALATION') {
       spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, PHASE3_SPAWN_INTERVAL / 1000);
     } else if (currentPhase === 'PHASE_4_EXTRACTION') {
-      spawnTimer = 0.55;
+      spawnTimer = 0.45;
     } else if (currentPhase === 'PHASE_1') {
-      // Плавный разгон от ENEMY_SPAWN_INTERVAL (1.4с) до 1.0с к концу фазы 1 (150 сек)
+      // Плавный разгон от ENEMY_SPAWN_INTERVAL (0.70с) до 0.38с к концу фазы 1 (150 сек)
       const progress = Math.min(1.0, elapsed / PHASE2_TIME_THRESHOLD_SEC);
-      spawnTimer = (ENEMY_SPAWN_INTERVAL / 1000) - progress * 0.4;
+      spawnTimer = Math.max(0.35, (ENEMY_SPAWN_INTERVAL / 1000) - progress * 0.32);
     } else {
-      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, 1.0 - (elapsed - PHASE2_TIME_THRESHOLD_SEC) * 0.003);
+      spawnTimer = Math.max(ENEMY_MIN_SPAWN_INTERVAL / 1000, 0.65 - (elapsed - PHASE2_TIME_THRESHOLD_SEC) * 0.003);
     }
   }
 
