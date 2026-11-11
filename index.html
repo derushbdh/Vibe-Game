@@ -20,6 +20,7 @@
         <div class="hud-row" id="skillsBar"></div>
       </div>
       <div class="hud-row">
+        <div class="pill phase-pill" id="phaseEl" style="color: #00ffcc; font-weight: 800;">ФАЗА 1/4: РАЗГОН</div>
         <div class="pill" id="killsEl">УБИЙСТВА: 0</div>
         <div class="pill" id="goldEl" style="color: #ffd700"><span class="coin">C</span> 0 CR</div>
         <div class="pill" id="timeEl">00:00</div>
@@ -82,6 +83,84 @@
         <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 10px;">
           <button class="btn-main" id="startBtn">НАЧАТЬ ЗАБЕГ</button>
           <button class="btn-hardcore locked" id="hardcoreBtn">🔒 ХАРДКОР (НУЖЕН 15 УР)</button>
+          <button class="btn-sec" id="telemetryBtn" style="border-color: #a855f7; color: #c084fc;">📊 ТЕЛЕМЕТРИЯ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Экран победы (Victory / Эвакуация) -->
+    <div class="modal" id="victoryModal" style="display: none;">
+      <div class="box victory-box">
+        <div class="victory-icon">🏆</div>
+        <div class="victory-badge">⭐ МИССИЯ ВЫПОЛНЕНА ⭐</div>
+        <h1 class="victory-title">ЭВАКУАЦИЯ УСПЕШНА!</h1>
+        <div class="sub victory-sub">
+          Все 4 фазы пройдены. Сектор очищен от кибер-угрозы!
+        </div>
+
+        <div class="game-over-stats">
+          <div class="stat-card">
+            <span class="stat-icon">⏱️</span>
+            <span class="stat-label">ВРЕМЯ ВЫЖИВАНИЯ</span>
+            <span class="stat-val" id="vicTimeVal">00:00</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⚡</span>
+            <span class="stat-label">ИТОГОВЫЙ УРОВЕНЬ</span>
+            <span class="stat-val" id="vicLvlVal">1</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">💀</span>
+            <span class="stat-label">ВСЕГО УБИЙСТВ</span>
+            <span class="stat-val" id="vicKillsVal">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon"><span class="coin">C</span></span>
+            <span class="stat-label">ДОБЫЧА + БОНУС ПОБЕДЫ</span>
+            <span class="stat-val stat-gold" id="vicGoldVal">+500 CR</span>
+          </div>
+        </div>
+
+        <div id="vicOverclockWrap" style="margin-bottom: 20px; font-size: 13.5px; color: #cbd5e1; display: none;">
+          <span style="font-weight: 800; color: #f59e0b;">⚡ ОВЕРКЛОК МОДУЛИ:</span>
+          <div id="vicOverclockList" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px;"></div>
+        </div>
+
+        <div class="game-over-actions">
+          <button class="btn-main btn-victory" id="vicHangarBtn">🚀 В АНГАР (ЗАБРАТЬ НАГРАДУ)</button>
+          <button class="btn-sec" id="vicRetryBtn">🔁 СЫГРАТЬ СНОВА</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Модальное окно телеметрии (История забегов и JSON-экспорт) -->
+    <div class="modal" id="telemetryModal" style="display: none;">
+      <div class="box telemetry-box">
+        <h1 style="color: #c084fc; margin-bottom: 6px;">📊 ИСТОРИЯ ЗАБЕГОВ И ТЕЛЕМЕТРИЯ</h1>
+        <div class="sub" style="margin-bottom: 14px;">Метрики сессий, пройденные фазы и прокачка</div>
+
+        <div class="telemetry-table-wrap">
+          <table class="telemetry-table" id="telemetryTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Герой</th>
+                <th>Время</th>
+                <th>Ур.</th>
+                <th>Убийства</th>
+                <th>Статус / Фаза</th>
+                <th>Оверклок</th>
+              </tr>
+            </thead>
+            <tbody id="telemetryBody">
+              <!-- Заполняется динамически -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px; flex-wrap: wrap;">
+          <button class="btn-main" id="exportTelemetryBtn" style="background: #a855f7; box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); color: #fff;">💾 СКАЧАТЬ JSON</button>
+          <button class="btn-sec" id="closeTelemetryBtn">ЗАКРЫТЬ</button>
         </div>
       </div>
     </div>

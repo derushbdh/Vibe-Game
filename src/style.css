@@ -931,6 +931,12 @@ h1 {
   box-shadow: 0 0 15px rgba(100, 116, 139, 0.2);
 }
 
+.last-run-card.victory {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 255, 204, 0.12) 100%);
+  border: 1.5px solid #ffd700;
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.35);
+}
+
 .last-run-badge {
   font-size: 13px;
   font-weight: 900;
@@ -944,6 +950,11 @@ h1 {
 
 .last-run-card.surrender .last-run-badge {
   color: #94a3b8;
+}
+
+.last-run-card.victory .last-run-badge {
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .last-run-info {
@@ -1056,4 +1067,186 @@ h1 {
   padding: 1px 5px;
   font-size: 11px;
   color: #38bdf8;
+}
+
+/* =========================================================
+   ФАЗЫ ИГРЫ, ОВЕРКЛОК, ЭКРАН ПОБЕДЫ И ТЕЛЕМЕТРИЯ
+   ========================================================= */
+
+/* Плашка текущей фазы в HUD */
+.phase-pill {
+  border-color: #00ffcc;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+  animation: phasePulse 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes phasePulse {
+  0% { border-color: rgba(0, 255, 204, 0.4); box-shadow: 0 0 8px rgba(0, 255, 204, 0.2); }
+  100% { border-color: rgba(0, 255, 204, 0.9); box-shadow: 0 0 16px rgba(0, 255, 204, 0.5); }
+}
+
+/* Карточка Оверклока в окне выбора способностей */
+.lvl-card.overclock {
+  border-color: #ffd700 !important;
+  background: linear-gradient(160deg, #2b1f0c 0%, #171106 100%) !important;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.35), inset 0 0 20px rgba(255, 215, 0, 0.1) !important;
+  animation: overclockGlow 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes overclockGlow {
+  0% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+  100% { transform: scale(1.02); box-shadow: 0 0 35px rgba(255, 215, 0, 0.7); }
+}
+
+.lvl-card-badge.overclock {
+  background: linear-gradient(90deg, #ffd700, #ff8800) !important;
+  color: #0c0a03 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+/* Экран победы (Victory Modal) */
+.victory-box {
+  max-width: 560px;
+  border-color: #ffd700;
+  box-shadow: 0 0 70px rgba(255, 215, 0, 0.45), inset 0 0 35px rgba(255, 215, 0, 0.15);
+  animation: victoryEntrance 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+}
+
+@keyframes victoryEntrance {
+  0% { opacity: 0; transform: scale(0.8) translateY(-20px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.victory-icon {
+  font-size: 52px;
+  margin-bottom: 6px;
+  animation: victoryTrophy 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes victoryTrophy {
+  0% { transform: translateY(0) scale(1); filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.4)); }
+  100% { transform: translateY(-6px) scale(1.1); filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.9)); }
+}
+
+.victory-badge {
+  display: inline-block;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  padding: 5px 16px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.3);
+}
+
+.victory-title {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #ffd700, #ffea00, #ffaa00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 8px;
+}
+
+.victory-sub {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.btn-victory {
+  background: linear-gradient(135deg, #ffd700, #ff9900);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.7);
+  color: #06070d;
+  border: none;
+  font-weight: 900;
+  padding: 14px 30px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-victory:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 40px rgba(255, 215, 0, 1);
+}
+
+/* Модальное окно телеметрии */
+.telemetry-box {
+  max-width: 780px;
+  border-color: #a855f7;
+  box-shadow: 0 0 50px rgba(168, 85, 247, 0.3);
+}
+
+.telemetry-table-wrap {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid #2e385a;
+  border-radius: 10px;
+  background: rgba(12, 16, 28, 0.85);
+  margin-bottom: 10px;
+}
+
+.telemetry-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: center;
+}
+
+.telemetry-table th {
+  background: rgba(22, 28, 50, 0.95);
+  color: #c084fc;
+  font-weight: 800;
+  padding: 10px 8px;
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid #3b4878;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.telemetry-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+}
+
+.telemetry-table tr:hover {
+  background: rgba(168, 85, 247, 0.08);
+}
+
+.telemetry-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.telemetry-badge.victory {
+  background: rgba(255, 215, 0, 0.2);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+}
+
+.telemetry-badge.defeat {
+  background: rgba(255, 0, 85, 0.15);
+  border: 1px solid #ff0055;
+  color: #ff3377;
+}
+
+.telemetry-badge.surrender {
+  background: rgba(100, 116, 139, 0.15);
+  border: 1px solid #64748b;
+  color: #94a3b8;
 }
