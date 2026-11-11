@@ -1918,7 +1918,7 @@ function updateHud(): void {
   sb.innerHTML = Object.entries(player.skills)
     .map(([k, lvl]) => {
       const isOc = overclockedSkills.has(k);
-      const name = isOc ? `[⚡ ${OVERCLOCK_SKILLS[k]?.title || SKILLS[k].name}]` : `${SKILLS[k].name} Ур.${lvl}`;
+      const name = isOc ? `⚡ ${OVERCLOCK_SKILLS[k]?.title || SKILLS[k].name}` : `${SKILLS[k].name} Ур.${lvl}`;
       return `<span class="skill-tag ${isOc ? 'overclock-tag' : ''}">${name}</span>`;
     })
     .join('');
