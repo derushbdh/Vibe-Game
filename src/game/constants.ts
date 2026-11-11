@@ -11,17 +11,17 @@
 /** Множитель скорости перемещения обычных врагов (1.0 = норма, 1.35 = +35% к скорости) */
 export const ENEMY_SPEED_SCALE = 1.0;
 
-/** Базовый интервал между появлениями врагов в миллисекундах (1200 мс = 1.2 сек) */
-export const ENEMY_SPAWN_INTERVAL = 1200;
+/** Базовый интервал между появлениями врагов в миллисекундах (600 мс = враги спавнятся в 2 раза чаще) */
+export const ENEMY_SPAWN_INTERVAL = 600;
 
 /** Минимальный интервал спавна при максимальном разгоне сложности (мс) */
 export const ENEMY_MIN_SPAWN_INTERVAL = 180;
 
-/** Начальное количество врагов на арене */
-export const ENEMY_BASE_COUNT = 14;
+/** Начальное количество врагов на арене на старте */
+export const ENEMY_BASE_COUNT = 24;
 
 /** Максимальный лимит плотности толпы врагов */
-export const ENEMY_MAX_CAP = 75;
+export const ENEMY_MAX_CAP = 90;
 
 /** Постепенное ускорение врагов со временем (+8.4% за минуту выживания) */
 export const ENEMY_ACCELERATION_PER_SEC = 0.0014;
@@ -38,14 +38,14 @@ export const ENEMY_ACCELERATION_PER_SEC = 0.0014;
  */
 export const PHASE2_TRIGGER_MODE: 'kills' | 'time' = 'kills';
 
-/** Порог убийств для вызова Фазы 2 в обычном режиме (~3.5 минуты активного боя, замедлено в 1.5х) */
-export const PHASE2_KILLS_THRESHOLD = 210;
+/** Порог убийств для вызова Фазы 2 в обычном режиме (ровно 100 фрагов) */
+export const PHASE2_KILLS_THRESHOLD = 100;
 
-/** Порог времени для вызова Фазы 2 при режиме 'time' (225 секунд = 3:45, замедлено в 1.5х) */
-export const PHASE2_TIME_THRESHOLD_SEC = 225;
+/** Порог времени для вызова Фазы 2 при режиме 'time' (120 секунд = 2:00) */
+export const PHASE2_TIME_THRESHOLD_SEC = 120;
 
-/** Порог убийств для вызова Фазы 2 в Хардкор-режиме (замедлено в 1.5х) */
-export const PHASE2_HARDCORE_KILLS = 135;
+/** Порог убийств для вызова Фазы 2 в Хардкор-режиме */
+export const PHASE2_HARDCORE_KILLS = 65;
 
 /** Множитель запаса здоровья босса Фазы 2 (1.0 = базовое) */
 export const PHASE2_BOSS_HP_SCALE = 1.0;
@@ -67,8 +67,8 @@ export const PHASE2_ALERT_DURATION_SEC = 3.5;
 /** Множитель скорости перемещения врагов в Фазе 3 (+35% к скорости) */
 export const PHASE3_ENEMY_SPEED_SCALE = 1.35;
 
-/** Ускоренный спавн волн врагов в Фазе 3 (мс) */
-export const PHASE3_SPAWN_INTERVAL = 850;
+/** Ускоренный спавн волн врагов в Фазе 3 (500 мс — еще более плотные волны) */
+export const PHASE3_SPAWN_INTERVAL = 500;
 
 /** Шанс появления Элитного дрона среди обычных врагов (0.12 = 12%) */
 export const PHASE3_ELITE_SPAWN_CHANCE = 0.12;
@@ -100,11 +100,11 @@ export const PHASE3_OVERCLOCK_UNLOCKED = true;
  */
 export const PHASE4_TRIGGER_MODE: 'kills' | 'time' = 'kills';
 
-/** Порог убийств внутри Фазы 3 для перехода в Фазу 4 (420 фрагов, замедлено в 1.5х) */
-export const PHASE4_KILLS_FROM_PHASE3 = 420;
+/** Порог убийств внутри Фазы 3 для перехода в Фазу 4 (ровно 100 фрагов) */
+export const PHASE4_KILLS_FROM_PHASE3 = 100;
 
-/** Порог времени выживания внутри Фазы 3 (315 сек = 5:15, замедлено в 1.5х) */
-export const PHASE4_TIME_FROM_PHASE3_SEC = 315;
+/** Порог времени выживания внутри Фазы 3 (120 сек = 2:00) */
+export const PHASE4_TIME_FROM_PHASE3_SEC = 120;
 
 
 // ============================================================================
