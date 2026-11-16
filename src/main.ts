@@ -1376,6 +1376,16 @@ function openLevelUp(): void {
   if (boredomModal) boredomModal.style.pointerEvents = 'none';
   playSound('levelup');
 
+  // Полное восстановление HP до максимума при повышении уровня
+  const healedAmount = Math.max(0, player.maxHp - player.hp);
+  player.hp = player.maxHp;
+  if (healedAmount > 0) {
+    addFloatText(player.x, player.y - 25, `ПОЛНЫЙ ХИЛ! +${Math.round(healedAmount)} HP`, '#00ffcc', 18);
+    addParticles(player.x, player.y, '#00ffcc', 12, 3);
+    playSound('heal');
+  }
+  updateHud();
+
   const box = document.getElementById('upgradeChoices')!;
   box.innerHTML = '';
 
@@ -1394,10 +1404,10 @@ function openLevelUp(): void {
   const allAvailable = [...normalPicks, ...overclockPicks];
 
   if (allAvailable.length === 0) {
-    player.hp = Math.min(player.maxHp, player.hp + 35);
+    player.hp = player.maxHp;
     player.runGold += 25;
     save.gold += 25;
-    addFloatText(player.x, player.y - 20, 'МАКС УРОВЕНЬ! +35 HP / +25 CR', '#ffd700', 16);
+    addFloatText(player.x, player.y - 20, 'МАКС УРОВЕНЬ! ПОЛНЫЙ ХИЛ / +25 CR', '#ffd700', 16);
     playSound('heal');
     state = 'PLAYING';
     lastTime = performance.now();
