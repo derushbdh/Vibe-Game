@@ -622,7 +622,7 @@ const SKILLS: Record<string, SkillInfo> = {
   },
   blades: {
     name: 'Кибер-клинки',
-    desc: 'Вокруг героя вращаются смертоносные лезвия, разрезая врагов и уничтожая снаряды',
+    desc: 'Вокруг героя вращаются смертоносные лезвия, разрезая врагов в ближнем бою',
     max: 5,
     type: 'weapon',
     color: '#ff2a85',
@@ -711,7 +711,7 @@ const OVERCLOCK_SKILLS: Record<string, OverclockInfo> = {
   },
   blades: {
     title: 'Клинковый вихрь',
-    desc: 'Удваивает число клинков, уничтожает любые снаряды, а каждые 4 сек испускает отталкивающую волну',
+    desc: 'Удваивает число клинков и радиус их вихря, каждые 4 сек испускает отталкивающую волну',
     color: '#ff2a85',
     icon: '🌀',
   },
@@ -2548,23 +2548,6 @@ function update(dt: number): void {
 
     const hitPlayer = Math.hypot(eb.x - player.x, eb.y - player.y) < eb.r + player.r;
     const isExpired = eb.life <= 0;
-
-    // Проверка разрушения снаряда вращающимися кибер-клинками
-    if (bladePositions.length > 0) {
-      let sliced = false;
-      for (const bl of bladePositions) {
-        if (Math.hypot(eb.x - bl.x, eb.y - bl.y) < eb.r + bl.r + 4) {
-          sliced = true;
-          break;
-        }
-      }
-      if (sliced) {
-        addParticles(eb.x, eb.y, isBladeOverclocked ? '#ffd700' : '#ff2a85', 7, 2.2);
-        playSound('chakram');
-        enemyBullets.splice(i, 1);
-        continue;
-      }
-    }
 
     if (eb.isExplosive && (isExpired || hitPlayer)) {
       const blastR = eb.blastRadius || 48;
