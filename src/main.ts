@@ -622,7 +622,7 @@ const SKILLS: Record<string, SkillInfo> = {
   },
   blades: {
     name: 'Кибер-клинки',
-    desc: 'Вокруг героя вращаются смертоносные лезвия, разрезая врагов',
+    desc: 'Вокруг героя вращаются смертоносные лезвия, разрезая врагов и уничтожая снаряды',
     max: 5,
     type: 'weapon',
     color: '#ff2a85',
@@ -711,7 +711,7 @@ const OVERCLOCK_SKILLS: Record<string, OverclockInfo> = {
   },
   blades: {
     title: 'Клинковый вихрь',
-    desc: 'Удваивает число клинков и скорость их вращения, каждые 4 сек испускает отталкивающую ударную волну',
+    desc: 'Удваивает число клинков, уничтожает любые снаряды, а каждые 4 сек испускает отталкивающую волну',
     color: '#ff2a85',
     icon: '🌀',
   },
@@ -1095,6 +1095,8 @@ let activeBeacon: { x: number; y: number; r: number; life: number } | null = nul
 let globalMagnetTimer = 20.0;
 let bladePulseTimer = 4.0;
 let laserDamageTimer = 0;
+let phase4ArenaCenter = { x: 0, y: 0 };
+let phase4ArenaGraceTimer = 0;
 
 let player!: Player;
 let bullets: Bullet[] = [];
@@ -1385,6 +1387,8 @@ function startGame(): void {
   globalMagnetTimer = 20.0;
   bladePulseTimer = 4.0;
   laserDamageTimer = 0;
+  phase4ArenaCenter = { x: 0, y: 0 };
+  phase4ArenaGraceTimer = 0;
 
   elapsed = 0;
   spawnTimer = ENEMY_SPAWN_INTERVAL / 1000;
@@ -2358,18 +2362,18 @@ function update(dt: number): void {
   // 2.5 Орбитальные клинки
   const bladeLvl = player.skills.blades || 0;
   const isBladeOverclocked = overclockedSkills.has('blades');
-  const bladeSpeed = (0.06 + bladeLvl * 0.01) * (isBladeOverclocked ? 1.45 : 1.0);
+  const bladeSpeed = (0.024 + bladeLvl * 0.003) * (isBladeOverclocked ? 1.25 : 1.0);
   player.timers.bladeAngle += bladeSpeed * dt;
   const bladePositions: { x: number; y: number; r: number }[] = [];
   if (bladeLvl > 0) {
     const count = isBladeOverclocked ? (bladeLvl + 1) * 2 : bladeLvl + 1;
-    const orbitDist = isBladeOverclocked ? 76 : 68;
+    const orbitDist = isBladeOverclocked ? 84 : 70;
     for (let i = 0; i < count; i++) {
       const a = player.timers.bladeAngle + (i * Math.PI * 2) / count;
       bladePositions.push({
         x: player.x + Math.cos(a) * orbitDist,
         y: player.y + Math.sin(a) * orbitDist,
-        r: isBladeOverclocked ? 14 : 11,
+        r: isBladeOverclocked ? 15 : 12,
       });
     }
   }
@@ -2545,6 +2549,23 @@ function update(dt: number): void {
     const hitPlayer = Math.hypot(eb.x - player.x, eb.y - player.y) < eb.r + player.r;
     const isExpired = eb.life <= 0;
 
+    // Проверка разрушения снаряда вращающимися кибер-клинками
+    if (bladePositions.length > 0) {
+      let sliced = false;
+      for (const bl of bladePositions) {
+        if (Math.hypot(eb.x - bl.x, eb.y - bl.y) < eb.r + bl.r + 4) {
+          sliced = true;
+          break;
+        }
+      }
+      if (sliced) {
+        addParticles(eb.x, eb.y, isBladeOverclocked ? '#ffd700' : '#ff2a85', 7, 2.2);
+        playSound('chakram');
+        enemyBullets.splice(i, 1);
+        continue;
+      }
+    }
+
     if (eb.isExplosive && (isExpired || hitPlayer)) {
       const blastR = eb.blastRadius || 48;
       novaWaves.push({ x: eb.x, y: eb.y, r: 8, maxR: blastR });
@@ -2691,6 +2712,9 @@ function update(dt: number): void {
 
     if (isP4Trigger) {
       currentPhase = 'PHASE_4_DUAL_BOSS';
+      phase4ArenaCenter = { x: Math.round(player.x), y: Math.round(player.y) };
+      phase4ArenaGraceTimer = 4.0;
+      laserDamageTimer = 0;
       const allBosses: ('dreadnought' | 'archon' | 'singularity')[] = ['dreadnought', 'archon', 'singularity'];
       const rem = allBosses.filter((b) => !spawnedBossTypes.includes(b));
       const firstFinalBoss = rem[0] || 'archon';
@@ -2725,7 +2749,7 @@ function update(dt: number): void {
 
   // 4.4 Логика Фазы 4: Эвакуация (удержание центра арены)
   if (currentPhase === 'PHASE_4_EXTRACTION') {
-    const distCenter = Math.hypot(player.x, player.y);
+    const distCenter = Math.hypot(player.x - phase4ArenaCenter.x, player.y - phase4ArenaCenter.y);
     const inZone = distCenter <= PHASE4_EXTRACTION_RADIUS;
     if (inZone) {
       extractionTimer -= dt / 60;
@@ -2742,15 +2766,24 @@ function update(dt: number): void {
   // 4.5 Лазерный периметр Фазы 4 (границы арены 960px)
   if (currentPhase === 'PHASE_4_DUAL_BOSS' || currentPhase === 'PHASE_4_EXTRACTION') {
     const ARENA_LIMIT = 1100 - PHASE4_ARENA_BORDER_PADDING;
-    if (Math.abs(player.x) > ARENA_LIMIT || Math.abs(player.y) > ARENA_LIMIT) {
-      laserDamageTimer -= dt / 60;
-      if (laserDamageTimer <= 0) {
-        laserDamageTimer = 0.35;
-        const tickDmg = Math.max(1, Math.round(PHASE4_BORDER_DPS * 0.35));
-        damagePlayer(tickDmg);
-        playSound('enemy_shoot');
-        addFloatText(player.x, player.y - 25, `ВНЕ АРЕНЫ! -${tickDmg}`, '#ff0033', 15);
-        addParticles(player.x, player.y, '#ff0033', 8, 2.5);
+    if (phase4ArenaGraceTimer > 0) {
+      phase4ArenaGraceTimer -= dt / 60;
+    }
+    const isOutsideArena =
+      Math.abs(player.x - phase4ArenaCenter.x) > ARENA_LIMIT ||
+      Math.abs(player.y - phase4ArenaCenter.y) > ARENA_LIMIT;
+
+    if (isOutsideArena) {
+      if (phase4ArenaGraceTimer <= 0) {
+        laserDamageTimer -= dt / 60;
+        if (laserDamageTimer <= 0) {
+          laserDamageTimer = 0.35;
+          const tickDmg = Math.max(1, Math.round(PHASE4_BORDER_DPS * 0.35));
+          damagePlayer(tickDmg);
+          playSound('enemy_shoot');
+          addFloatText(player.x, player.y - 25, `ВНЕ АРЕНЫ! -${tickDmg}`, '#ff0033', 15);
+          addParticles(player.x, player.y, '#ff0033', 8, 2.5);
+        }
       }
     } else {
       laserDamageTimer = 0;
@@ -3410,11 +3443,11 @@ function draw(): void {
     ctx.shadowColor = '#ff0033';
     ctx.shadowBlur = 18;
     ctx.lineWidth = 4;
-    ctx.strokeRect(-ARENA_LIMIT, -ARENA_LIMIT, ARENA_LIMIT * 2, ARENA_LIMIT * 2);
+    ctx.strokeRect(phase4ArenaCenter.x - ARENA_LIMIT, phase4ArenaCenter.y - ARENA_LIMIT, ARENA_LIMIT * 2, ARENA_LIMIT * 2);
     ctx.setLineDash([16, 12]);
     ctx.strokeStyle = 'rgba(255, 0, 51, 0.45)';
     ctx.lineWidth = 2;
-    ctx.strokeRect(-ARENA_LIMIT - 6, -ARENA_LIMIT - 6, (ARENA_LIMIT + 6) * 2, (ARENA_LIMIT + 6) * 2);
+    ctx.strokeRect(phase4ArenaCenter.x - ARENA_LIMIT - 6, phase4ArenaCenter.y - ARENA_LIMIT - 6, (ARENA_LIMIT + 6) * 2, (ARENA_LIMIT + 6) * 2);
     ctx.restore();
   }
 
@@ -3423,30 +3456,30 @@ function draw(): void {
     ctx.save();
     const pulse = 1 + Math.sin(elapsed * 4) * 0.08;
     const rad = PHASE4_EXTRACTION_RADIUS * pulse;
-    const isInside = Math.hypot(player.x, player.y) <= PHASE4_EXTRACTION_RADIUS;
+    const isInside = Math.hypot(player.x - phase4ArenaCenter.x, player.y - phase4ArenaCenter.y) <= PHASE4_EXTRACTION_RADIUS;
 
     ctx.shadowBlur = 20;
     ctx.shadowColor = isInside ? '#00ffcc' : '#ffd700';
     ctx.fillStyle = isInside ? 'rgba(0, 255, 204, 0.15)' : 'rgba(255, 215, 0, 0.08)';
     ctx.beginPath();
-    ctx.arc(0, 0, rad, 0, Math.PI * 2);
+    ctx.arc(phase4ArenaCenter.x, phase4ArenaCenter.y, rad, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.strokeStyle = isInside ? '#00ffcc' : '#ffd700';
     ctx.lineWidth = 3;
     ctx.setLineDash([10, 8]);
     ctx.beginPath();
-    ctx.arc(0, 0, rad, 0, Math.PI * 2);
+    ctx.arc(phase4ArenaCenter.x, phase4ArenaCenter.y, rad, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
 
     ctx.textAlign = 'center';
     ctx.font = "900 20px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = isInside ? '#00ffcc' : '#ffd700';
-    ctx.fillText(`🚁 ЭВАКУАЦИЯ: ${Math.ceil(extractionTimer)}с`, 0, -10);
+    ctx.fillText(`🚁 ЭВАКУАЦИЯ: ${Math.ceil(extractionTimer)}с`, phase4ArenaCenter.x, phase4ArenaCenter.y - 10);
     ctx.font = "700 12px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(isInside ? 'УДЕРЖАНИЕ ЗОНЫ (100% СКОРОСТЬ)' : 'ВЕРНИТЕСЬ В ЗОНУ! (40% СКОРОСТЬ)', 0, 16);
+    ctx.fillText(isInside ? 'УДЕРЖАНИЕ ЗОНЫ (100% СКОРОСТЬ)' : 'ВЕРНИТЕСЬ В ЗОНУ! (40% СКОРОСТЬ)', phase4ArenaCenter.x, phase4ArenaCenter.y + 16);
     ctx.restore();
   }
 
@@ -3833,7 +3866,7 @@ function draw(): void {
   if (bladeLvl > 0) {
     const isOc = overclockedSkills.has('blades');
     const count = isOc ? (bladeLvl + 1) * 2 : bladeLvl + 1;
-    const orbitDist = isOc ? 76 : 68;
+    const orbitDist = isOc ? 84 : 70;
 
     for (let i = 0; i < count; i++) {
       const a = player.timers.bladeAngle + (i * Math.PI * 2) / count;
@@ -3962,13 +3995,15 @@ function draw(): void {
   ctx.restore();
 
   // Стрелка направления к арене или к центру эвакуации
+  const ARENA_LIMIT = 1100 - PHASE4_ARENA_BORDER_PADDING;
   const isOutsidePhase4Arena =
     (currentPhase === 'PHASE_4_DUAL_BOSS' || currentPhase === 'PHASE_4_EXTRACTION') &&
-    (Math.abs(player.x) > (1100 - PHASE4_ARENA_BORDER_PADDING) || Math.abs(player.y) > (1100 - PHASE4_ARENA_BORDER_PADDING));
+    (Math.abs(player.x - phase4ArenaCenter.x) > ARENA_LIMIT ||
+      Math.abs(player.y - phase4ArenaCenter.y) > ARENA_LIMIT);
 
   if (isOutsidePhase4Arena) {
-    const toCenterX = -player.x;
-    const toCenterY = -player.y;
+    const toCenterX = phase4ArenaCenter.x - player.x;
+    const toCenterY = phase4ArenaCenter.y - player.y;
     const angleToCenter = Math.atan2(toCenterY, toCenterX);
     const arrowDist = Math.min(W, H) * 0.40;
     const arrowX = W / 2 + Math.cos(angleToCenter) * arrowDist;
@@ -3988,9 +4023,12 @@ function draw(): void {
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-  } else if (currentPhase === 'PHASE_4_EXTRACTION' && Math.hypot(player.x, player.y) > PHASE4_EXTRACTION_RADIUS) {
-    const toCenterX = -player.x;
-    const toCenterY = -player.y;
+  } else if (
+    currentPhase === 'PHASE_4_EXTRACTION' &&
+    Math.hypot(player.x - phase4ArenaCenter.x, player.y - phase4ArenaCenter.y) > PHASE4_EXTRACTION_RADIUS
+  ) {
+    const toCenterX = phase4ArenaCenter.x - player.x;
+    const toCenterY = phase4ArenaCenter.y - player.y;
     const angleToCenter = Math.atan2(toCenterY, toCenterX);
     const arrowDist = Math.min(W, H) * 0.42;
     const arrowX = W / 2 + Math.cos(angleToCenter) * arrowDist;
@@ -4128,7 +4166,11 @@ function draw(): void {
     ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = '#ff99aa';
     ctx.shadowBlur = 0;
-    ctx.fillText(`ЛАЗЕРНЫЙ ПЕРИМЕТР • КРИТИЧЕСКИЙ УРОН (-${PHASE4_BORDER_DPS} HP/СЕК)`, W / 2, warnY + 39);
+    if (phase4ArenaGraceTimer > 0) {
+      ctx.fillText(`АКТИВАЦИЯ ЛАЗЕРНОГО ПЕРИМЕТРА ЧЕРЕЗ: ${Math.ceil(phase4ArenaGraceTimer)} СЕК`, W / 2, warnY + 39);
+    } else {
+      ctx.fillText(`ЛАЗЕРНЫЙ ПЕРИМЕТР • КРИТИЧЕСКИЙ УРОН (-${PHASE4_BORDER_DPS} HP/СЕК)`, W / 2, warnY + 39);
+    }
 
     ctx.restore();
   }
