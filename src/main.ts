@@ -2670,9 +2670,10 @@ function update(dt: number): void {
       laserDamageTimer -= dt / 60;
       if (laserDamageTimer <= 0) {
         laserDamageTimer = 0.35;
-        damagePlayer(9);
+        const tickDmg = Math.max(1, Math.round(PHASE4_BORDER_DPS * 0.35));
+        damagePlayer(tickDmg);
         playSound('enemy_shoot');
-        addFloatText(player.x, player.y - 25, 'ЛАЗЕРНЫЙ ПЕРИМЕТР! -9', '#ff0033', 15);
+        addFloatText(player.x, player.y - 25, `ВНЕ АРЕНЫ! -${tickDmg}`, '#ff0033', 15);
         addParticles(player.x, player.y, '#ff0033', 8, 2.5);
       }
     } else {
@@ -3841,8 +3842,34 @@ function draw(): void {
   ctx.globalAlpha = 1;
   ctx.restore();
 
-  // Стрелка направления к центру эвакуации (когда вне зоны)
-  if (currentPhase === 'PHASE_4_EXTRACTION' && Math.hypot(player.x, player.y) > PHASE4_EXTRACTION_RADIUS) {
+  // Стрелка направления к арене или к центру эвакуации
+  const isOutsidePhase4Arena =
+    (currentPhase === 'PHASE_4_DUAL_BOSS' || currentPhase === 'PHASE_4_EXTRACTION') &&
+    (Math.abs(player.x) > (1100 - PHASE4_ARENA_BORDER_PADDING) || Math.abs(player.y) > (1100 - PHASE4_ARENA_BORDER_PADDING));
+
+  if (isOutsidePhase4Arena) {
+    const toCenterX = -player.x;
+    const toCenterY = -player.y;
+    const angleToCenter = Math.atan2(toCenterY, toCenterX);
+    const arrowDist = Math.min(W, H) * 0.40;
+    const arrowX = W / 2 + Math.cos(angleToCenter) * arrowDist;
+    const arrowY = H / 2 + Math.sin(angleToCenter) * arrowDist;
+
+    ctx.save();
+    ctx.translate(arrowX, arrowY);
+    ctx.rotate(angleToCenter);
+    ctx.fillStyle = '#ff0033';
+    ctx.shadowColor = '#ff0033';
+    ctx.shadowBlur = 18;
+    ctx.beginPath();
+    ctx.moveTo(22, 0);
+    ctx.lineTo(-14, -12);
+    ctx.lineTo(-6, 0);
+    ctx.lineTo(-14, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  } else if (currentPhase === 'PHASE_4_EXTRACTION' && Math.hypot(player.x, player.y) > PHASE4_EXTRACTION_RADIUS) {
     const toCenterX = -player.x;
     const toCenterY = -player.y;
     const angleToCenter = Math.atan2(toCenterY, toCenterX);
@@ -3942,6 +3969,47 @@ function draw(): void {
     ctx.fillStyle = '#cbd5e1';
     ctx.shadowBlur = 0;
     ctx.fillText(bossWarningSub, W / 2, bannerY + 40);
+
+    ctx.restore();
+  }
+
+  // Экранное предупреждение при выходе за пределы арены Фазы 4
+  if (isOutsidePhase4Arena) {
+    ctx.save();
+    const edgePulse = 0.5 + Math.sin(performance.now() * 0.015) * 0.5;
+    ctx.strokeStyle = `rgba(255, 0, 51, ${0.35 + edgePulse * 0.4})`;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, W - 6, H - 6);
+
+    let warnY = 82;
+    if (activeBosses.length > 0) {
+      warnY = 56 + activeBosses.length * 42 + 8;
+    } else if (bossWarningTimer > 0) {
+      warnY = 138;
+    }
+
+    const warnW = Math.min(480, W * 0.9);
+    const warnH = 48;
+    const warnX = (W - warnW) / 2;
+    const pulse = 0.85 + Math.sin(performance.now() * 0.015) * 0.15;
+
+    ctx.fillStyle = 'rgba(20, 4, 10, 0.95)';
+    ctx.fillRect(warnX, warnY, warnW, warnH);
+    ctx.strokeStyle = '#ff0033';
+    ctx.lineWidth = 2.5 * pulse;
+    ctx.shadowColor = '#ff0033';
+    ctx.shadowBlur = 16 * pulse;
+    ctx.strokeRect(warnX, warnY, warnW, warnH);
+
+    ctx.textAlign = 'center';
+    ctx.font = "900 16px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = '#ff2255';
+    ctx.fillText('⚠ ВЕРНИТЕСЬ НА АРЕНУ! ⚠', W / 2, warnY + 21);
+
+    ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = '#ff99aa';
+    ctx.shadowBlur = 0;
+    ctx.fillText(`ЛАЗЕРНЫЙ ПЕРИМЕТР • КРИТИЧЕСКИЙ УРОН (-${PHASE4_BORDER_DPS} HP/СЕК)`, W / 2, warnY + 39);
 
     ctx.restore();
   }
