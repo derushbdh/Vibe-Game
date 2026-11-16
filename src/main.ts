@@ -91,8 +91,10 @@ type SoundType =
   | 'boss_spawn'
   | 'game_over';
 
+let isMuted = false;
 let audioCtx: AudioContext | null = null;
 function playSound(type: SoundType): void {
+  if (isMuted) return;
   try {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -301,6 +303,7 @@ interface SaveData {
     magnet: number;
   };
   telemetry: TelemetryData;
+  isMuted?: boolean;
 }
 
 interface Player {
@@ -504,6 +507,7 @@ const defaultSave: SaveData = {
     skillPickCounts: {},
     runsHistory: [],
   },
+  isMuted: false,
 };
 
 let save: SaveData = defaultSave;
@@ -515,9 +519,54 @@ try {
 } catch {
   save = defaultSave;
 }
+isMuted = !!save.isMuted;
 
 function saveGame(): void {
   localStorage.setItem('cyber_survivors_save', JSON.stringify(save));
+}
+
+function updateMuteButtons(): void {
+  const muteHudBtn = document.getElementById('muteHudBtn');
+  if (muteHudBtn) {
+    muteHudBtn.innerHTML = isMuted ? '🔇 Звук: Выкл' : '🔊 Звук: Вкл';
+    muteHudBtn.title = isMuted ? 'Включить звук (M)' : 'Отключить звук (M)';
+    if (isMuted) {
+      muteHudBtn.classList.add('muted');
+    } else {
+      muteHudBtn.classList.remove('muted');
+    }
+  }
+
+  const muteMenuBtn = document.getElementById('muteMenuBtn');
+  if (muteMenuBtn) {
+    muteMenuBtn.innerHTML = isMuted ? '🔇 ЗВУК: ВЫКЛ' : '🔊 ЗВУК: ВКЛ';
+    muteMenuBtn.style.borderColor = isMuted ? '#ef4444' : '#38bdf8';
+    muteMenuBtn.style.color = isMuted ? '#f87171' : '#38bdf8';
+  }
+
+  const mutePauseBtn = document.getElementById('mutePauseBtn');
+  if (mutePauseBtn) {
+    mutePauseBtn.innerHTML = isMuted ? '🔇 ЗВУК: ВЫКЛ' : '🔊 ЗВУК: ВКЛ';
+    mutePauseBtn.style.borderColor = isMuted ? '#ef4444' : '#38bdf8';
+    mutePauseBtn.style.color = isMuted ? '#f87171' : '#38bdf8';
+  }
+}
+
+function toggleMute(): void {
+  isMuted = !isMuted;
+  save.isMuted = isMuted;
+  saveGame();
+  if (audioCtx) {
+    if (isMuted && audioCtx.state === 'running') {
+      audioCtx.suspend();
+    } else if (!isMuted && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+  updateMuteButtons();
+  if (!isMuted) {
+    playSound('upgrade');
+  }
 }
 
 // --- КЛАССЫ ГЕРОЕВ СО СКИНОМ ---
@@ -1214,6 +1263,8 @@ window.addEventListener('keydown', (e) => {
     }
   } else if (e.code === 'KeyK' && state === 'PLAYING') {
     triggerPlayerDeath();
+  } else if (e.code === 'KeyM') {
+    toggleMute();
   } else if (e.code === 'KeyP' && e.shiftKey && state === 'PLAYING') {
     advancePhaseTest();
   } else if (e.code === 'KeyU' && e.shiftKey && state === 'PLAYING') {
@@ -4350,6 +4401,17 @@ boredomBtn.onclick = () => {
 boredomNextBtn.onclick = switchVideo;
 
 boredomCloseBtn.onclick = closeBoredom;
+
+const muteHudBtn = document.getElementById('muteHudBtn');
+if (muteHudBtn) muteHudBtn.onclick = toggleMute;
+
+const muteMenuBtn = document.getElementById('muteMenuBtn');
+if (muteMenuBtn) muteMenuBtn.onclick = toggleMute;
+
+const mutePauseBtn = document.getElementById('mutePauseBtn');
+if (mutePauseBtn) mutePauseBtn.onclick = toggleMute;
+
+updateMuteButtons();
 
 if (boredomBtn) boredomBtn.style.pointerEvents = 'none';
 if (boredomModal) boredomModal.style.pointerEvents = 'none';
