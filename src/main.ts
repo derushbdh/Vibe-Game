@@ -2371,9 +2371,9 @@ function update(dt: number): void {
     for (let i = 0; i < count; i++) {
       const a = player.timers.bladeAngle + (i * Math.PI * 2) / count;
       bladePositions.push({
-        x: player.x + Math.cos(a) * orbitDist,
-        y: player.y + Math.sin(a) * orbitDist,
-        r: isBladeOverclocked ? 15 : 12,
+        x: player.x + Math.cos(a) * (orbitDist + 8),
+        y: player.y + Math.sin(a) * (orbitDist + 8),
+        r: isBladeOverclocked ? 16 : 13,
       });
     }
   }
@@ -3885,32 +3885,85 @@ function draw(): void {
       ctx.shadowBlur = isOc ? 18 : 12;
       ctx.shadowColor = glowColor;
 
-      // 1. Неоновое лезвие (заостренный кибер-клинок острием от игрока)
+      // 1. Длинное кинжальное лезвие (стилет)
+      // Верхняя грань лезвия (освещенная плазменная грань)
       ctx.beginPath();
-      ctx.moveTo(20, 0);
-      ctx.lineTo(-4, -6);
-      ctx.lineTo(-12, -4);
-      ctx.lineTo(-9, 0);
-      ctx.lineTo(-12, 4);
-      ctx.lineTo(-4, 6);
-      ctx.closePath();
-      ctx.fillStyle = bladeColor;
-      ctx.fill();
-
-      // 2. Внутреннее горящее плазменное ядро
-      ctx.beginPath();
-      ctx.moveTo(17, 0);
-      ctx.lineTo(-2, -3);
-      ctx.lineTo(-6, 0);
-      ctx.lineTo(-2, 3);
+      ctx.moveTo(26, 0);
+      ctx.lineTo(2, -3.2);
+      ctx.lineTo(2, 0);
       ctx.closePath();
       ctx.fillStyle = coreColor;
       ctx.fill();
 
-      // 3. Металлический эмиттер рукояти клинка (со стороны корабля)
+      // Нижняя грань лезвия (насыщенная неоновая грань)
       ctx.beginPath();
-      ctx.rect(-14, -3, 4, 6);
-      ctx.fillStyle = '#0f172a';
+      ctx.moveTo(26, 0);
+      ctx.lineTo(2, 0);
+      ctx.lineTo(2, 3.2);
+      ctx.closePath();
+      ctx.fillStyle = bladeColor;
+      ctx.fill();
+
+      // Осевое ребро (гребень клинка)
+      ctx.beginPath();
+      ctx.moveTo(26, 0);
+      ctx.lineTo(2, 0);
+      ctx.strokeStyle = coreColor;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Неоновый контур лезвия
+      ctx.beginPath();
+      ctx.moveTo(26, 0);
+      ctx.lineTo(2, -3.2);
+      ctx.lineTo(2, 3.2);
+      ctx.closePath();
+      ctx.strokeStyle = bladeColor;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      // 2. Изогнутая крестовина (гарда с опущенными дугами)
+      ctx.beginPath();
+      ctx.moveTo(4, -8.5);
+      ctx.quadraticCurveTo(1.5, 0, 4, 8.5);
+      ctx.lineTo(1.5, 8);
+      ctx.quadraticCurveTo(-1.5, 0, 1.5, -8);
+      ctx.closePath();
+      ctx.fillStyle = isOc ? '#2b1b06' : '#0f172a';
+      ctx.strokeStyle = isOc ? '#ffd700' : '#e2e8f0';
+      ctx.lineWidth = 1.2;
+      ctx.fill();
+      ctx.stroke();
+
+      // Заклепка / центральный кристалл гарды
+      ctx.beginPath();
+      ctx.arc(1.5, 0, 2, 0, Math.PI * 2);
+      ctx.fillStyle = bladeColor;
+      ctx.fill();
+
+      // 3. Рукоять с обмоткой (направлена внутрь к игроку)
+      ctx.beginPath();
+      ctx.rect(-8.5, -1.8, 9.5, 3.6);
+      ctx.fillStyle = '#080c14';
+      ctx.strokeStyle = isOc ? '#ffd700' : bladeColor;
+      ctx.lineWidth = 0.8;
+      ctx.fill();
+      ctx.stroke();
+
+      // Тонкие витки обмотки рукояти
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.lineWidth = 0.8;
+      for (let rx = -6.5; rx <= -0.5; rx += 2) {
+        ctx.beginPath();
+        ctx.moveTo(rx, -1.8);
+        ctx.lineTo(rx, 1.8);
+        ctx.stroke();
+      }
+
+      // 4. Круглое навершие рукояти (яблоко)
+      ctx.beginPath();
+      ctx.arc(-11, 0, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = isOc ? '#ffd700' : '#e2e8f0';
       ctx.strokeStyle = bladeColor;
       ctx.lineWidth = 1;
       ctx.fill();
