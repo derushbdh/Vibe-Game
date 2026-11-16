@@ -29,6 +29,7 @@
         </div>
         <div class="hud-row hud-actions-row">
           <div class="pill rules-hud-pill" id="rulesHudBtn" title="Посмотреть правила игры">📖 Правила</div>
+          <div class="pill codex-hud-pill" id="codexHudBtn" title="Легенда оружия и эволюций (L)">📜 Арсенал: <kbd>L</kbd></div>
           <div class="pill pause-hint-pill" id="pauseHintBtn" title="Нажмите клавишу Esc или кликните сюда для паузы">⏸ Пауза: <kbd>Esc</kbd></div>
           <div class="pill mute-hud-pill" id="muteHudBtn" title="Включить / Выключить звук (M)">🔊 Звук: Вкл</div>
           <div class="pill kill-test-pill" id="killPlayerHudBtn" title="Тест для преподавателя: проверить экран гибели">💀 Умереть (тест)</div>
@@ -68,8 +69,9 @@
       <div class="box">
         <h1>CYBER SURVIVORS</h1>
         <div id="lastRunBanner" class="last-run-banner-wrap"></div>
-        <div style="margin-bottom: 14px;">
-          <button class="btn-rules" id="rulesBtn">📖 ПРАВИЛА ИГРЫ И УПРАВЛЕНИЕ</button>
+        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px;">
+          <button class="btn-rules" id="rulesBtn">📖 ПРАВИЛА ИГРЫ</button>
+          <button class="btn-rules" id="codexMenuBtn" style="border-color: #ffd700; color: #ffd700; background: rgba(255, 215, 0, 0.08);">📜 ЛЕГЕНДА ОРУЖИЯ (L)</button>
         </div>
         <div style="font-size: 20px; font-weight: 800; color: #ffd700; margin-bottom: 14px;" id="bankEl">
           БАНК: <span class="coin">C</span> 0 CR
@@ -267,7 +269,7 @@
         </div>
 
         <div style="background: rgba(30, 41, 59, 0.7); border: 1px dashed #38bdf8; border-radius: 10px; padding: 10px 14px; margin-top: 10px; font-size: 12px; color: #94a3b8; text-align: left;">
-          💡 <b>Подсказка для демонстрации:</b> нажмите <kbd>Esc</kbd> для паузы; <kbd>M</kbd> — звук (вкл/выкл); <kbd>Shift + P</kbd> — пропустить текущую фазу; <kbd>Shift + U</kbd> — мгновенный Level Up.
+          💡 <b>Подсказка для демонстрации:</b> нажмите <kbd>Esc</kbd> для паузы; <kbd>L</kbd> — легенда оружия; <kbd>M</kbd> — звук (вкл/выкл); <kbd>Shift + P</kbd> — пропустить текущую фазу; <kbd>Shift + U</kbd> — мгновенный Level Up.
         </div>
 
         <button class="btn-main" id="closeRulesBtn" style="margin-top: 14px; padding: 12px 36px; background: #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);">ПОНЯТНО, В БОЙ!</button>
@@ -292,10 +294,37 @@
         <div class="sub">СИСТЕМА НА ОЖИДАНИИ. ВЫ МОЖЕТЕ ПРОДОЛЖИТЬ БОЙ ИЛИ ВЕРНУТЬСЯ В АНГАР</div>
         <div style="display: flex; gap: 12px; justify-content: center; margin-top: 18px; flex-wrap: wrap;">
           <button class="btn-main" id="resumeBtn">ПРОДОЛЖИТЬ (ESC)</button>
+          <button class="btn-sec" id="codexPauseBtn" style="border-color: #ffd700; color: #ffd700;">📜 ЛЕГЕНДА ОРУЖИЯ (L)</button>
           <button class="btn-sec" id="mutePauseBtn" style="border-color: #38bdf8; color: #38bdf8;" title="Включить / Выключить звук (M)">🔊 ЗВУК: ВКЛ</button>
           <button class="btn-sec" id="rulesPauseBtn" style="border-color: #38bdf8; color: #38bdf8;">📖 ПРАВИЛА</button>
           <button class="btn-sec" id="killPlayerPauseBtn" style="border-color: #ff0055; color: #ff3377;" title="Тест для преподавателя: проверить экран гибели">💀 ТЕСТ: ПОГИБНУТЬ</button>
           <button class="btn-hardcore unlocked" id="surrenderBtn" style="background: rgba(30,35,55,0.8); border-color: #64748b; color: #cbd5e1;">СДАТЬСЯ В АНГАР</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Окно "Легенда оружия и эволюций" (Кодекс) -->
+    <div class="modal" id="codexModal" style="display: none;">
+      <div class="box codex-box">
+        <div class="codex-header">
+          <div style="font-size: 28px; line-height: 1;">📜</div>
+          <div>
+            <h1 style="color: #ffd700; margin-bottom: 2px;">ЛЕГЕНДА ОРУЖИЯ И ЭВОЛЮЦИЙ</h1>
+            <div class="sub">Справочник всех 10 систем корабля и условий мутации в супер-оружие [ОВЕРКЛОК]</div>
+          </div>
+        </div>
+
+        <div class="codex-banner">
+          <div class="codex-banner-icon">⚡</div>
+          <div class="codex-banner-text">
+            <b>Как работает эволюция (система Vampire Survivors):</b> прокачайте любой модуль до максимального 5-го уровня. После победы над боссом Фазы 2 активируется <b>Фаза 3: Перегрузка матрицы</b>, и при следующем повышении уровня модуль мутирует в финальное супер-оружие!
+          </div>
+        </div>
+
+        <div class="codex-list" id="codexList"></div>
+
+        <div style="margin-top: 14px; text-align: center;">
+          <button class="btn-main" id="closeCodexBtn" style="background: #ffd700; color: #06070d; font-weight: 900; box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);">ПОНЯТНО, В БОЙ!</button>
         </div>
       </div>
     </div>
