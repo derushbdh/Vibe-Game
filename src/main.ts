@@ -710,8 +710,8 @@ const OVERCLOCK_SKILLS: Record<string, OverclockInfo> = {
     icon: '⚡',
   },
   blades: {
-    title: 'Гравитационный диск',
-    desc: 'Каждые 4 сек испускает радиальную ударную волну, отбрасывая толпу',
+    title: 'Клинковый вихрь',
+    desc: 'Удваивает число клинков и скорость их вращения, каждые 4 сек испускает отталкивающую ударную волну',
     color: '#ff2a85',
     icon: '🌀',
   },
@@ -1246,6 +1246,11 @@ function surrenderRun(): void {
 window.addEventListener('keydown', (e) => {
   keys[e.code] = true;
   if (e.code === 'Escape') {
+    const codexModal = document.getElementById('codexModal');
+    if (codexModal && codexModal.style.display === 'flex') {
+      closeCodex();
+      return;
+    }
     const rulesModal = document.getElementById('rulesModal');
     if (rulesModal && rulesModal.style.display === 'flex') {
       closeRules();
@@ -1260,6 +1265,13 @@ window.addEventListener('keydown', (e) => {
       togglePause(true);
     } else if (state === 'PAUSED') {
       togglePause(false);
+    }
+  } else if (e.code === 'KeyL') {
+    const codexModal = document.getElementById('codexModal');
+    if (codexModal && codexModal.style.display === 'flex') {
+      closeCodex();
+    } else {
+      openCodex();
     }
   } else if (e.code === 'KeyK' && state === 'PLAYING') {
     triggerPlayerDeath();
@@ -2345,16 +2357,19 @@ function update(dt: number): void {
 
   // 2.5 Орбитальные клинки
   const bladeLvl = player.skills.blades || 0;
-  player.timers.bladeAngle += (0.06 + bladeLvl * 0.01) * dt;
+  const isBladeOverclocked = overclockedSkills.has('blades');
+  const bladeSpeed = (0.06 + bladeLvl * 0.01) * (isBladeOverclocked ? 1.45 : 1.0);
+  player.timers.bladeAngle += bladeSpeed * dt;
   const bladePositions: { x: number; y: number; r: number }[] = [];
   if (bladeLvl > 0) {
-    const count = bladeLvl + 1;
+    const count = isBladeOverclocked ? (bladeLvl + 1) * 2 : bladeLvl + 1;
+    const orbitDist = isBladeOverclocked ? 76 : 68;
     for (let i = 0; i < count; i++) {
       const a = player.timers.bladeAngle + (i * Math.PI * 2) / count;
       bladePositions.push({
-        x: player.x + Math.cos(a) * 68,
-        y: player.y + Math.sin(a) * 68,
-        r: 11,
+        x: player.x + Math.cos(a) * orbitDist,
+        y: player.y + Math.sin(a) * orbitDist,
+        r: isBladeOverclocked ? 14 : 11,
       });
     }
   }
@@ -2794,9 +2809,10 @@ function update(dt: number): void {
     // Урон от клинков
     for (const bl of bladePositions) {
       if (Math.hypot(e.x - bl.x, e.y - bl.y) < e.r + bl.r && (!e.bladeCd || e.bladeCd <= 0)) {
-        damageEnemy(e, 11 + bladeLvl * 4);
-        e.bladeCd = 18;
-        addParticles(e.x, e.y, '#ff2a85', 4, 2);
+        const hitDmg = Math.round((11 + bladeLvl * 4) * (isBladeOverclocked ? 1.4 : 1.0));
+        damageEnemy(e, hitDmg);
+        e.bladeCd = isBladeOverclocked ? 13 : 18;
+        addParticles(e.x, e.y, isBladeOverclocked ? '#ffd700' : '#ff2a85', 5, 2.5);
       }
     }
 
@@ -3812,20 +3828,62 @@ function draw(): void {
     ctx.stroke();
   }
 
-  // Орбитальные клинки
+  // Орбитальные клинки (высокодетализированные неоновые энерго-клинки)
   const bladeLvl = player.skills.blades || 0;
   if (bladeLvl > 0) {
-    const count = bladeLvl + 1;
+    const isOc = overclockedSkills.has('blades');
+    const count = isOc ? (bladeLvl + 1) * 2 : bladeLvl + 1;
+    const orbitDist = isOc ? 76 : 68;
+
     for (let i = 0; i < count; i++) {
       const a = player.timers.bladeAngle + (i * Math.PI * 2) / count;
-      const bx = player.x + Math.cos(a) * 68;
-      const by = player.y + Math.sin(a) * 68;
-      ctx.shadowBlur = 14;
-      ctx.shadowColor = '#ff2a85';
-      ctx.fillStyle = '#ff2a85';
+      const bx = player.x + Math.cos(a) * orbitDist;
+      const by = player.y + Math.sin(a) * orbitDist;
+      const tangent = a + Math.PI / 2;
+
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.rotate(tangent);
+
+      const bladeColor = isOc ? '#ff007f' : '#ff2a85';
+      const coreColor = isOc ? '#ffd700' : '#ffffff';
+      const glowColor = isOc ? '#ff0055' : '#ff2a85';
+
+      ctx.shadowBlur = isOc ? 18 : 12;
+      ctx.shadowColor = glowColor;
+
+      // 1. Неоновое лезвие (заостренный кибер-клинок)
       ctx.beginPath();
-      ctx.arc(bx, by, 9, 0, Math.PI * 2);
+      ctx.moveTo(18, 0);
+      ctx.lineTo(-4, -6);
+      ctx.lineTo(-12, -4);
+      ctx.lineTo(-9, 0);
+      ctx.lineTo(-12, 4);
+      ctx.lineTo(-4, 6);
+      ctx.closePath();
+      ctx.fillStyle = bladeColor;
       ctx.fill();
+
+      // 2. Внутреннее горящее плазменное ядро
+      ctx.beginPath();
+      ctx.moveTo(15, 0);
+      ctx.lineTo(-2, -3);
+      ctx.lineTo(-6, 0);
+      ctx.lineTo(-2, 3);
+      ctx.closePath();
+      ctx.fillStyle = coreColor;
+      ctx.fill();
+
+      // 3. Металлический эмиттер рукояти клинка
+      ctx.beginPath();
+      ctx.rect(-14, -3, 4, 6);
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = bladeColor;
+      ctx.lineWidth = 1;
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
     }
   }
 
@@ -4144,6 +4202,114 @@ function exportTelemetryJson(): void {
   dlAnchor.remove();
 }
 
+// --- КОДЕКС И ЛЕГЕНДА ОРУЖИЯ (СИСТЕМА ЭВОЛЮЦИЙ VAMPIRE SURVIVORS) ---
+let codexOpenedFrom: 'menu' | 'pause' | 'playing' = 'menu';
+
+function renderCodexList(): void {
+  const container = document.getElementById('codexList');
+  if (!container) return;
+
+  const inRun = !!player && (state === 'PLAYING' || state === 'PAUSED' || state === 'LEVEL_UP');
+
+  container.innerHTML = Object.keys(SKILLS)
+    .map((k) => {
+      const sk = SKILLS[k];
+      const oc = OVERCLOCK_SKILLS[k];
+      const playerLvl = inRun && player.skills ? player.skills[k] || 0 : 0;
+      const isEvolved = inRun && overclockedSkills.has(k);
+
+      let cardClass = 'codex-card';
+      if (isEvolved) {
+        cardClass += ' overclocked';
+      } else if (playerLvl > 0) {
+        cardClass += ' equipped';
+      }
+
+      let baseStatusHtml = '';
+      if (inRun) {
+        if (playerLvl > 0) {
+          baseStatusHtml = `<span class="codex-status-pill active">✓ В БОЮ: УР. ${playerLvl}/${sk.max}</span>`;
+        } else {
+          baseStatusHtml = `<span class="codex-status-pill">НЕ УСТАНОВЛЕНО</span>`;
+        }
+      } else {
+        baseStatusHtml = `<span class="codex-status-pill">МАКС. ${sk.max} УР.</span>`;
+      }
+
+      let evoStatusHtml = '';
+      if (inRun) {
+        if (isEvolved) {
+          evoStatusHtml = `<span class="codex-status-pill evo-active">⚡ МУТАЦИЯ АКТИВНА</span>`;
+        } else if (playerLvl >= sk.max) {
+          evoStatusHtml = `<span class="codex-status-pill ready">ГОТОВО К МУТАЦИИ (ФАЗА 3)</span>`;
+        } else {
+          evoStatusHtml = `<span class="codex-status-pill">ТРЕБУЕТСЯ 5 УР.</span>`;
+        }
+      } else {
+        evoStatusHtml = `<span class="codex-status-pill ready">УСЛОВИЕ: 5 УР. + ФАЗА 3</span>`;
+      }
+
+      const typeLabel = sk.type === 'weapon' ? 'ОРУЖИЕ' : 'ПАССИВНОЕ';
+
+      return `
+        <div class="${cardClass}">
+          <div class="codex-base">
+            <div class="codex-icon" style="color: ${sk.color}">${sk.icon}</div>
+            <div class="codex-info">
+              <div class="codex-title">
+                ${sk.name}
+                <span class="codex-tag">${typeLabel}</span>
+              </div>
+              <div class="codex-desc">${sk.desc}</div>
+              <div>${baseStatusHtml}</div>
+            </div>
+          </div>
+
+          <div class="codex-arrow">
+            <span>➔</span>
+            <span class="codex-cond">5 УР + ФАЗА 3</span>
+          </div>
+
+          <div class="codex-evo">
+            <div class="codex-icon" style="color: ${oc.color}; border-color: ${oc.color}66;">${oc.icon}</div>
+            <div class="codex-info">
+              <div class="codex-title" style="color: ${oc.color}">
+                ★ ${oc.title}
+                <span class="lvl-card-badge overclock" style="font-size:9px;padding:2px 6px;">[ОВЕРКЛОК]</span>
+              </div>
+              <div class="codex-desc">${oc.desc}</div>
+              <div>${evoStatusHtml}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function openCodex(): void {
+  const codexModal = document.getElementById('codexModal');
+  if (!codexModal) return;
+  if (state === 'PLAYING') {
+    codexOpenedFrom = 'playing';
+    togglePause(true);
+  } else if (state === 'PAUSED') {
+    codexOpenedFrom = 'pause';
+  } else {
+    codexOpenedFrom = 'menu';
+  }
+  renderCodexList();
+  codexModal.style.display = 'flex';
+}
+
+function closeCodex(): void {
+  const codexModal = document.getElementById('codexModal');
+  if (codexModal) codexModal.style.display = 'none';
+  if (codexOpenedFrom === 'playing' && state === 'PAUSED') {
+    togglePause(false);
+  }
+}
+
 function loop(now: number): void {
   const dt = Math.min(2.5, (now - lastTime) / 16.667);
   lastTime = now;
@@ -4410,6 +4576,18 @@ if (muteMenuBtn) muteMenuBtn.onclick = toggleMute;
 
 const mutePauseBtn = document.getElementById('mutePauseBtn');
 if (mutePauseBtn) mutePauseBtn.onclick = toggleMute;
+
+const codexHudBtn = document.getElementById('codexHudBtn');
+if (codexHudBtn) codexHudBtn.onclick = openCodex;
+
+const codexMenuBtn = document.getElementById('codexMenuBtn');
+if (codexMenuBtn) codexMenuBtn.onclick = openCodex;
+
+const codexPauseBtn = document.getElementById('codexPauseBtn');
+if (codexPauseBtn) codexPauseBtn.onclick = openCodex;
+
+const closeCodexBtn = document.getElementById('closeCodexBtn');
+if (closeCodexBtn) closeCodexBtn.onclick = closeCodex;
 
 updateMuteButtons();
 
