@@ -50,10 +50,12 @@ canvas {
   font-weight: 700;
 }
 
-.hud-col {
+.hud-col,
+.hud-col-left,
+.hud-col-right {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .hud-col-right {
@@ -62,30 +64,33 @@ canvas {
 
 .hud-row {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .hud-row-right {
   justify-content: flex-end;
+  align-items: center;
 }
 
 .hud-actions-row {
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-end;
+  align-items: center;
   margin-top: 2px;
 }
 
 .pill {
   background: rgba(14, 18, 32, 0.88);
   border: 1px solid #2b3558;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 8px;
-  font-size: 15px;
+  font-size: 14px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 }
 
 .skill-tag {
@@ -657,40 +662,38 @@ h1 {
 
 /* КНОПКА "МНЕ СКУЧНО" */
 .boredom-trigger {
-  position: fixed;
-  right: 16px;
-  top: 102px;
-  z-index: 15;
-  background: linear-gradient(135deg, #18203d, #0d1226);
-  border: 1.5px solid #00ffcc;
+  pointer-events: auto;
+  background: rgba(18, 24, 44, 0.85);
+  border: 1px solid #00ffcc;
   color: #00ffcc;
   font-family: inherit;
   font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  padding: 8px 14px;
-  border-radius: 20px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 255, 204, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 6px;
   user-select: none;
+  white-space: nowrap;
 }
 
 .boredom-trigger:hover {
-  transform: scale(1.05);
-  background: #00ffcc;
-  color: #06070d;
-  box-shadow: 0 0 20px rgba(0, 255, 204, 0.6);
+  transform: translateY(-1px);
+  background: rgba(24, 45, 60, 0.95);
+  border-color: #00ffcc;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(0, 255, 204, 0.35);
 }
 
 .boredom-trigger.active {
   background: linear-gradient(135deg, #ff2a85, #b829ff);
   border-color: #ff2a85;
   color: #fff;
-  box-shadow: 0 0 20px rgba(255, 42, 133, 0.5);
+  box-shadow: 0 0 14px rgba(255, 42, 133, 0.5);
 }
 
 /* ПЛАВАЮЩЕЕ ОКНО ЧИСТКИ КОВРА (PICTURE-IN-PICTURE) */

@@ -528,7 +528,7 @@ function saveGame(): void {
 function updateMuteButtons(): void {
   const muteHudBtn = document.getElementById('muteHudBtn');
   if (muteHudBtn) {
-    muteHudBtn.innerHTML = isMuted ? '🔇 Звук: Выкл' : '🔊 Звук: Вкл';
+    muteHudBtn.innerHTML = isMuted ? '🔇' : '🔊';
     muteHudBtn.title = isMuted ? 'Включить звук (M)' : 'Отключить звук (M)';
     if (isMuted) {
       muteHudBtn.classList.add('muted');
