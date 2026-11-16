@@ -3839,11 +3839,11 @@ function draw(): void {
       const a = player.timers.bladeAngle + (i * Math.PI * 2) / count;
       const bx = player.x + Math.cos(a) * orbitDist;
       const by = player.y + Math.sin(a) * orbitDist;
-      const tangent = a + Math.PI / 2;
 
       ctx.save();
       ctx.translate(bx, by);
-      ctx.rotate(tangent);
+      // Направление клинка острием наружу от корабля игрока
+      ctx.rotate(a);
 
       const bladeColor = isOc ? '#ff007f' : '#ff2a85';
       const coreColor = isOc ? '#ffd700' : '#ffffff';
@@ -3852,9 +3852,9 @@ function draw(): void {
       ctx.shadowBlur = isOc ? 18 : 12;
       ctx.shadowColor = glowColor;
 
-      // 1. Неоновое лезвие (заостренный кибер-клинок)
+      // 1. Неоновое лезвие (заостренный кибер-клинок острием от игрока)
       ctx.beginPath();
-      ctx.moveTo(18, 0);
+      ctx.moveTo(20, 0);
       ctx.lineTo(-4, -6);
       ctx.lineTo(-12, -4);
       ctx.lineTo(-9, 0);
@@ -3866,7 +3866,7 @@ function draw(): void {
 
       // 2. Внутреннее горящее плазменное ядро
       ctx.beginPath();
-      ctx.moveTo(15, 0);
+      ctx.moveTo(17, 0);
       ctx.lineTo(-2, -3);
       ctx.lineTo(-6, 0);
       ctx.lineTo(-2, 3);
@@ -3874,7 +3874,7 @@ function draw(): void {
       ctx.fillStyle = coreColor;
       ctx.fill();
 
-      // 3. Металлический эмиттер рукояти клинка
+      // 3. Металлический эмиттер рукояти клинка (со стороны корабля)
       ctx.beginPath();
       ctx.rect(-14, -3, 4, 6);
       ctx.fillStyle = '#0f172a';
